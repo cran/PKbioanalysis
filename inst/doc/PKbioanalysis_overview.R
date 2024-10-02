@@ -9,7 +9,6 @@ library(PKbioanalysis)
 
 ## -----------------------------------------------------------------------------
 plate <- generate_96() 
-
 plot(plate)
 
 ## -----------------------------------------------------------------------------
@@ -61,7 +60,6 @@ plate <- generate_96() |> add_samples(1:20)
 plot(plate)
 
 ## -----------------------------------------------------------------------------
-
 plate <- generate_96()
 
 plate <- plate |> 
@@ -112,20 +110,16 @@ plates <- make_metabolic_study(
 
 
 ## -----------------------------------------------------------------------------
-
 length(plates)
-
-plot(plates[[1]], color = "samples")
-plot(plates[[2]], color = "samples")
-plot(plates[[3]], color = "samples")
-plot(plates[[4]], color = "samples")
-plot(plates[[5]], color = "samples")
-plot(plates[[6]], color = "samples")
+plot(plates[[1]], color = "samples", label_size = 9)
+plot(plates[[2]], color = "samples", label_size = 9)
+plot(plates[[3]], color = "samples", label_size = 9)
+plot(plates[[4]], color = "samples", label_size = 9)
+plot(plates[[5]], color = "samples", label_size = 9)
+plot(plates[[6]], color = "samples", label_size = 9)
 
 
 
 ## ----eval = FALSE-------------------------------------------------------------
-#  
 #  register_plate(plates)
-#  
 

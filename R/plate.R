@@ -355,6 +355,8 @@ add_cs_curve <- function(plate, plate_std) {
   .plate(plate, df, plate_id, empty_rows, descr = descr)
 }
 
+#' Get last standard repetition
+#'@noRd
 .last_std <- function(plate){
   suppressWarnings({
   n <- plate$df |> dplyr::filter(.data$TYPE == "Standard") |>
@@ -365,6 +367,8 @@ add_cs_curve <- function(plate, plate_std) {
   ifelse(is.finite(n), n, 0)
 }
 
+#' Get last quality control repetition
+#' @noRd
 .last_qc <- function(plate){
 
   suppressWarnings({
@@ -419,6 +423,7 @@ add_suitability <- function(plate, conc, label = "suitability") {
 }
 
 #' Check the quality control samples valid
+#' The function will be strict for LQC, but will give a warning only for MQC and HQC
 #' @param std_vec vector of calibration standards
 #' @param loq_conc limit of quantification
 #' @param lqc_conc low quality control concentration
@@ -432,13 +437,15 @@ add_suitability <- function(plate, conc, label = "suitability") {
   checkmate::assertNumeric(mqc_conc, lower = lqc_conc)
   checkmate::assertNumeric(hqc_conc, lower = mqc_conc)
 
-  calrange <-  loq_conc:max(std_vec)  # seq(loq_conc, hqc_conc, length.out = 200)
+  # find the 30%, 50% and 75% cut on the calibration range
+  min_val <- as.numeric(loq_conc)
+  max_val <- max(as.numeric(std_vec))
+  quantrange <- quantile(c(min_val, max_val), c(0.30, 0.50, 0.70)) 
 
-  quantrange <- quantile(calrange, c(0.30, 0.50, 0.75))
-
-  if(!(lqc_conc <= lqc_conc*3)) stop(paste("LQC should be less or equal 3xLOQ", loq_conc*3))
-  if(!(mqc_conc >= quantrange[1] & mqc_conc <= quantrange[2])) stop(paste("MQC should be between 30%",  quantrange[1],  "and 50%", quantrange[2] ,"of the calibration range"))
-  if(!(hqc_conc >= quantrange[3])) stop(paste("HQC should be equal or greater than 75%", quantrange[3], "of the calibration range"))
+  if(!(lqc_conc <= lqc_conc*3)) stop(paste("LQC should be less or equal 3xLOQ (<", loq_conc*3), ")")
+  if(!(mqc_conc >= quantrange[1] & mqc_conc <= quantrange[2])) warning(paste("MQC should be between 30% (",
+    quantrange[1], ")and 50%", quantrange[2] ,"of the calibration range"))
+  if(!(hqc_conc >= quantrange[3])) warning(paste("HQC should be equal or greater than 75% (>=", quantrange[3], ")of the calibration range"))
 
 }
 
@@ -472,7 +479,6 @@ add_qcs <- function(plate, lqc_conc, mqc_conc, hqc_conc, n_qc=3, qc_serial=TRUE)
   # get the lloq from the last call
   plate_std <- plate$df |> dplyr::filter(.data$TYPE == "Standard", .data$std_rep == grp_std) |>
     dplyr::pull(.data$conc) 
-    
   loq_conc <- plate_std |>
     as.numeric() |> min(na.rm = TRUE)
 
@@ -633,6 +639,7 @@ make_calibration_study <-
 #' @param color character. Coloring variable. Either "conc", "time", "factor", "samples", "TYPE"
 #' @param Instrument A string placed at subtitle
 #' @param caption A string place at plate caption
+#' @param label_size numeric. Size of the label. Default is 15
 #' @param path Default is NULL, if not null, must be a path to save plate image
 #' @param ... additional arguments passed to ggplot2::ggsave
 #'
@@ -655,6 +662,7 @@ plot.PlateObj <- function(x,
                           color = "conc",
                           Instrument = "",
                           caption = "",
+                          label_size = 15,
                           path = NULL, ...
                           ) {
 
@@ -712,7 +720,7 @@ plot.PlateObj <- function(x,
         y = .data$row,
         label = str_replace_all(.data$value, "_", "\n")
       ),
-      size = 15,
+      size = label_size,
       size.unit = "pt",
       color = "white"
     ) +
@@ -749,7 +757,7 @@ plot.PlateObj <- function(x,
     message("Plate not registered. To register, use register_plate()")
   }
 
-  if (!is.null(path)) ggplot2::ggsave(path, fig, width = 36, units = "in", dpi = 300, limitsize = FALSE, ...)
+  if (!is.null(path)) ggplot2::ggsave(path, fig, width = 12, height =8, dpi = 300, limitsize = FALSE, ...)
   fig
 }
 
@@ -851,8 +859,10 @@ print.PlateObj <- function(x, ...) {
   print(...) |> invisible()
 }
 
+
 #' Check if a plate is registered
 #' @param plate PlateObj
+#' @noRd
 .is_registered <- function(plate){
   checkmate::testClass(plate, c("RegisteredPlate", "PlateObj"))
 }
@@ -885,14 +895,15 @@ register_plate.MultiPlate <- function(plate){
 }
 
 
-
+#'@noRd
 .register_plate_logic <- function(plate, force = FALSE){
   checkmate::assertClass(plate, "PlateObj")
   plate_id <- plate$plate_id
 
 
-  db_path <- rappdirs::user_data_dir() |>
-    file.path("PKbioanalysis/plates_cache")
+  db_path <- PKbioanalysis_env$data_dir |>
+    file.path("plates_cache")
+
   plates_vec <- .compile_cached_plates()
 
   ids <- str_split(plates_vec, "_")[1]
@@ -912,18 +923,20 @@ register_plate.MultiPlate <- function(plate){
   plate
 }
 
-#' @import rappdirs
+#' @noRd
 .compile_cached_plates <- function(){
-  db_path <- rappdirs::user_data_dir() |>
-    file.path("PKbioanalysis/plates_cache")
+  db_path <- PKbioanalysis_env$data_dir |>
+    file.path("plates_cache")
+
   plates <- list.files(db_path, full.names = FALSE)
   plates
 }
 
 #' Get all plates in the database
+#' @noRd
 .get_plates_db <- function(){
-  db_path <- rappdirs::user_data_dir() |>
-    file.path("PKbioanalysis/plates_cache")
+  db_path <- PKbioanalysis_env$data_dir |>
+    file.path("plates_cache")
   plates <- list.files(db_path, full.names = TRUE)
 
   parse_fun <- function(x){
@@ -948,6 +961,7 @@ register_plate.MultiPlate <- function(plate){
 
 #' Extract the subid from a plate
 #' @param plate PlateObj
+#' @noRd
 .plate_subid <- function(plate){
   checkmate::assertClass(plate, "PlateObj")
   plate$plate_id |>
@@ -958,6 +972,7 @@ register_plate.MultiPlate <- function(plate){
 #' Extract the plate id from a plate
 #' @param plate PlateObj
 #' @import checkmate
+#' @noRd
 .plate_id <- function(plate){
   checkmate::assertClass(plate, "PlateObj")
   plate$plate_id |>
@@ -968,8 +983,9 @@ register_plate.MultiPlate <- function(plate){
 #' @param id_full character. Plate ID 
 #' @noRd 
 .retrieve_plate <- function(id_full){
-  db_path <- rappdirs::user_data_dir() |>
-    file.path("PKbioanalysis/plates_cache")
+  db_path <- PKbioanalysis_env$data_dir |>
+    file.path("plates_cache")
+    
   plate <- readRDS(file.path(db_path, id_full))
   plate
 }
@@ -983,8 +999,8 @@ reuse_plate <- function(id, extra_fill = 0){
   checkmate::assertNumeric(id)
   checkmate::assertNumeric(extra_fill)
 
-  db_path <- rappdirs::user_data_dir() |>
-    file.path("PKbioanalysis/plates_cache")
+  db_path <- PKbioanalysis_env$data_dir |>
+    file.path("plates_cache")
   plates <- list.files(db_path, pattern = paste0(id, "_"))
   plates <- plates[plates %>% str_detect(paste0(id, "_"))]
   if(length(plates) == 0) stop("Plate not found")
@@ -1050,7 +1066,8 @@ combine_plates <- function(plates){
 }
 
 
-# Bind new samples to the plate df 
+# Bind new samples to the plate df
+#' @noRd
 .bind_new_samples <- function(df, new_df) {
   dplyr::bind_rows(df, new_df) |>
     dplyr::mutate(SAMPLE_LOCATION = paste0(LETTERS[.data$row], ",", .data$col)) |>

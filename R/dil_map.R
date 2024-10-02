@@ -8,10 +8,10 @@
   c2 <- gsub("(.*)(_.*)", "\\1", c2)
 
   # parse
-  unit_c1 <- gsub("^[0-9]+", "", c1)
-  unit_c2 <- gsub("^[0-9]+", "", c2)
-  c1 <- gsub("^([0-9]+)(.*)", "\\1", c1) |> as.numeric()
-  c2 <- gsub("^([0-9]+)(.*)", "\\1", c2) |> as.numeric()
+  unit_c1 <- gsub("^[0-9]\\d*(\\.\\d+)?", "", c1)
+  unit_c2 <- gsub("^[0-9]\\d*(\\.\\d+)?", "", c2)
+  c1 <- gsub("^([0-9.]\\d*\\.?\\d*)(.*)", "\\1", c1) |> as.numeric()
+  c2 <- gsub("^([0-9.]\\d*\\.?\\d*)(.*)", "\\1", c2) |> as.numeric()
 
   # assert either both has units or not
   is.empty <- \(x) x == ""

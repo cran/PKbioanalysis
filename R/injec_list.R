@@ -1,6 +1,7 @@
 #' injection List Object
 #' @param df dataframe
 #' @param plates vector of plate IDs
+#' @noRd
 .injecList <- function(df, plates) {
   s <- list(
     injec_list = df,
@@ -15,7 +16,7 @@
 #' Create Injection Sequence
 #'
 #' @param plate PlateObj object
-#' @param inlet_method file path specifying the inlet method.
+#' @param method choose method from database
 #' @param repeat_std number of re-injections for calibration standards. Default is 1.
 #' @param repeat_analyte number of re-injections for unknown samples. Default is 1
 #' @param repeat_qc number of re-injections for QC wells. Default is 1
@@ -36,7 +37,7 @@
 #' @returns InjecListObj object
 #'@export
 build_injec_seq <- function(plate,
-                        inlet_method,
+                        method,
                         repeat_std = 1,
                         repeat_qc = 1,
                         repeat_analyte = 1,
@@ -57,7 +58,7 @@ build_injec_seq <- function(plate,
 
 #'@export
 #'@returns InjecListObj object
-build_injec_seq.MultiPlate <- function( plate, inlet_method,
+build_injec_seq.MultiPlate <- function( plate, method,
   repeat_std = 1, repeat_qc = 1, repeat_analyte = 1,
   blank_after_top_conc = TRUE, blank_at_end = TRUE, system_suitability = 0,
   blank_every_n = NULL, inject_vol, descr = "",
@@ -101,7 +102,7 @@ build_injec_seq.MultiPlate <- function( plate, inlet_method,
 
   }
 
-  build_injec_seq(plate, inlet_method = inlet_method,
+  build_injec_seq(plate, method = method,
                   repeat_std = repeat_std, repeat_qc = repeat_qc, repeat_analyte = repeat_analyte,
                   blank_after_top_conc = blank_after_top_conc, blank_at_end = blank_at_end,
                   system_suitability = system_suitability, blank_every_n = blank_every_n,
@@ -114,7 +115,7 @@ build_injec_seq.MultiPlate <- function( plate, inlet_method,
 #' @export
 #' @returns InjecListObj object
 build_injec_seq.PlateObj <- function(plate,
-                        inlet_method,
+                        method,
                         repeat_std = 1,
                         repeat_qc = 1,
                         repeat_analyte = 1,
@@ -129,7 +130,7 @@ build_injec_seq.PlateObj <- function(plate,
                         tray = 1,
                         explore_mode = FALSE,
                         conc_df = NULL) {
-  # checkmate::assertFile(inlet_method)
+
   checkmate::assertNumber(repeat_std, finite = TRUE, lower = 1)
   checkmate::assertNumber(repeat_qc, finite = TRUE, lower = 1)
   checkmate::assertNumber(repeat_analyte, finite = TRUE, lower = 1)
@@ -354,7 +355,7 @@ build_injec_seq.PlateObj <- function(plate,
       INJ_VOL = inject_vol,
       # CONC_A = conc,
       FILE_TEXT = descr,
-      INLET_METHOD = inlet_method
+      INLET_METHOD = method
     )
 
 
@@ -377,6 +378,7 @@ build_injec_seq.PlateObj <- function(plate,
 #' @param df original dataframe
 #' @param add_df dataframe to add
 #' @param every_n number of rows to interject add_df
+#' @noRd
 .add_every_n <- function(df, add_df, every_n) {
   dflen <- 1:nrow(df)
   df |>
@@ -455,146 +457,17 @@ combine_injec_lists <-
     print(x)
   }
 
-
-# create it if not exists
-.check_sample_db <- function() {
-
-  db_path <- rappdirs::user_data_dir() |>
-    file.path("PKbioanalysis/samples.db")
-
-  # Check if the database file exists
-  db <- duckdb::dbConnect(duckdb::duckdb(), db_path)
-  DBI::dbExecute(db, "
-  CREATE TABLE IF NOT EXISTS samples (
-    file_name TEXT PRIMARY KEY,
-    list_id INTEGER,
-    inlet_method TEXT,
-    row INTEGER,
-    col INTEGER,
-    value TEXT,
-    sample_location TEXT,
-    samples TEXT,
-    type TEXT,
-    std_rep INTEGER,
-    tray TEXT,
-    inj_vol REAL,
-
-    conc_a TEXT,
-    conc_b TEXT,
-    conc_c TEXT,
-    conc_d TEXT,
-    conc_e TEXT,
-    conc_f TEXT,
-    conc_g TEXT,
-    conc_h TEXT,
-    conc_i TEXT,
-    conc_j TEXT,
-    conc_k TEXT,
-    conc_l TEXT,
-    conc_m TEXT,
-    conc_n TEXT,
-    conc_o TEXT,
-    conc_p TEXT,
-
-    compound_a TEXT,
-    compound_b TEXT,
-    compound_c TEXT,
-    compound_d TEXT,
-    compound_e TEXT,
-    compound_f TEXT,
-    compound_g TEXT,
-    compound_h TEXT,
-    compound_i TEXT,
-    compound_j TEXT,
-    compound_k TEXT,
-    compound_m TEXT,
-    compound_n TEXT,
-    compound_l TEXT,
-    compound_o TEXT,
-    compound_p TEXT,
-
-    file_text TEXT,
-    conc TEXT,
-    time TEXT,
-    factor TEXT,
-    UNIQUE(file_name)
-  );
-")
-
-# This id auto increments and is assigned to list_id above
-DBI::dbExecute(db, "
-  CREATE TABLE IF NOT EXISTS metadata (
-    id INTEGER PRIMARY KEY,
-    date TEXT,
-    assoc_plates TEXT,
-    description TEXT,
-    UNIQUE(id)
-  );
-") # id, date, assoc_plates
-
-
-DBI::dbExecute(db, "
-  CREATE TABLE IF NOT EXISTS peakstab (
-    peak_id INTEGER PRIMARY KEY,
-    file_name TEXT NOT NULL,
-    compound TEXT,
-    compound_id INTEGER NOT NULL,
-    transition_id INTEGER NOT NULL,
-    observed_rt REAL,
-    observed_rt_start REAL,
-    observed_rt_end REAL,
-    observed_peak_height REAL,
-    area REAL,
-    manual INTEGER NOT NULL DEFAULT 0,
-    date TEXT,
-    UNIQUE(peak_id)
-  );
-
-")
-
-DBI::dbExecute(db, "
-  CREATE TABLE IF NOT EXISTS transtab (
-    transition_id INTEGER PRIMARY KEY,
-    transition_label TEXT,
-    q1 REAL,
-    q3 REAL,
-    inlet_method TEXT,
-    UNIQUE(transition_id),
-    UNIQUE(q1, q3, inlet_method)
-  );
-")
-
-
-DBI::dbExecute(db, "
-  CREATE TABLE IF NOT EXISTS compoundstab (
-    compound_id INTEGER PRIMARY KEY,
-    compound TEXT,
-    transition_id INTEGER,
-    expected_rt_start REAL,
-    expected_rt_end REAL,
-    expected_rt REAL,
-    IS_id INTEGER,
-    UNIQUE(compound_id)
-  );
-
-")
-
-duckdb::dbDisconnect(db, shutdown = TRUE)
-}
-
 #' Export injection sequence to vendor specific format
 #'
 #' @param injec_seq InjecListObj object
 #'
 #' @import checkmate
 #' @import dplyr
-#' @import rappdirs
 #'
 #' @export
 #' @returns dataframe
 write_injec_seq <- function(injec_seq){
   checkmate::assertClass(injec_seq, "InjecListObj")
-
 
   # Modify sample list
   sample_list <- dplyr::mutate(injec_seq$injec_list,
@@ -603,8 +476,8 @@ write_injec_seq <- function(injec_seq){
     select(-matches("index"))
 
 
-  db_path <- rappdirs::user_data_dir() |>
-    file.path("PKbioanalysis/samples.db")
+  db_path <- PKbioanalysis_env$data_dir |>
+    file.path("samples.db")
 
   .check_sample_db()
 
@@ -644,15 +517,15 @@ write_injec_seq <- function(injec_seq){
 
 #' Download sample list from database to local spreadsheet
 #'@param sample_list dataframe of sample list either from db or from write_injec_seq
-#'@param vendor currently only 'masslynx' and 'masshunter' are supported
+#'@param vendor currently only 'masslynx', 'masshunter' and 'analyst' are supported
 #'
 #'@details
-#'For 'masslynx' and 'masshunter', the exported format will be in csv format, compatible with the respective software.
+#' For all current vendors, the exported format will be in csv format, compatible with the respective software.
 #'@export
 #'@returns dataframe
 download_sample_list <- function(sample_list, vendor){
   checkmate::assertDataFrame(sample_list)
-  checkmate::assertSubset(vendor, c("masslynx", "masshunter"), FALSE)
+  checkmate::assertSubset(vendor, c("masslynx", "masshunter", "analyst"), FALSE)
 
   if (vendor == "masslynx") {
     sample_list <- sample_list |>
@@ -685,7 +558,29 @@ download_sample_list <- function(sample_list, vendor){
 
       )
 
-  } else {
+  } else if(vendor == "analyst"){
+
+    sample_list <- sample_list |>
+      dplyr::rename_all(toupper) |>
+      dplyr::rename(`Sample Name` = .data$FILE_NAME) |>
+      dplyr::rename(`Data File` = .data$FILE_NAME) |>
+      dplyr::rename(Description = .data$FILE_TEXT) |>
+      dplyr::rename(Vial = .data$SAMPLE_LOCATION) |>
+      dplyr::rename(Volume = .data$INJ_VOL) |>
+      dplyr::rename(`Sample Type` = .data$TYPE) |>
+      dplyr::rename(`Dil. factor 1` = .data$CONC_A) |>
+      dplyr::select(matches("Data file"), matches("Description"),
+        matches("Vial"), matches("Volume"), starts_with("Dil. factor")) |>
+      dplyr::mutate(Vial = \(x){ # to
+        x <- strsplit(x, ":")[[1]]
+        tray <- paste0("P", x[1])
+        well <- gsub(",", "", x[2])
+        paste0(tray, "-", well)
+      }
+
+      )
+
+  }else {
     stop("Vendor not supported")
   }
   sample_list
@@ -704,55 +599,18 @@ print.InjecListObj <- function(x, ...) {
 
 }
 
-.reset_samples_db <- function() {
-  db_path <- rappdirs::user_data_dir() |>
-    file.path("PKbioanalysis/samples.db")
-    # rename
-  file.rename(db_path, paste0(db_path, "_old"))
-}
-
-# return metadata table for sample list
-.get_samplesdb_metadata <- function(){
-  .check_sample_db()
-
-  db_path <- rappdirs::user_data_dir() |>
-    file.path("PKbioanalysis/samples.db")
-  db <- duckdb::dbConnect(duckdb::duckdb(), dbdir = db_path)
-  metadata <- DBI::dbGetQuery(db, "SELECT * FROM metadata")
-  duckdb::dbDisconnect(db, shutdown = TRUE)
-
-  metadata
-}
-
-.get_samplelist <- function(id){
-  .check_sample_db()
-  db_path <- rappdirs::user_data_dir() |>
-    file.path("PKbioanalysis/samples.db")
-  db <- duckdb::dbConnect(duckdb::duckdb(), dbdir = db_path)
-  sample_list <- DBI::dbGetQuery(db, paste0("SELECT * FROM samples WHERE list_id = ", id))
-  duckdb::dbDisconnect(db, shutdown = TRUE)
-  sample_list
-}
 
 
 ## get max list_id from db
+#'@noRd
 .last_list_id <- function(){
-    db_path <- rappdirs::user_data_dir() |>
-        file.path("PKbioanalysis/samples.db")
+    db_path <- PKbioanalysis_env$data_dir |>
+        file.path("samples.db")
+
     db <- duckdb::dbConnect( duckdb::duckdb(), dbdir = db_path)
     max_id_query <- "SELECT MAX(id) AS max_id FROM metadata"
     max_id_result <- DBI::dbGetQuery(db, max_id_query)
     max_id <- max_id_result$max_id
     duckdb::dbDisconnect(db, shutdown = TRUE)
     max_id
-}
-
-
-
-.connect_to_db <- function(){
-  db_path <- rappdirs::user_data_dir() |>
-    file.path("PKbioanalysis/samples.db")
-  db <- duckdb::dbConnect(duckdb::duckdb(), dbdir = db_path)
-  db
-
 }

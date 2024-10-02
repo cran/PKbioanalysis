@@ -4,7 +4,15 @@
 \alias{plot.PlateObj}
 \title{Plotting 96 well plate}
 \usage{
-\method{plot}{PlateObj}(x, color = "conc", Instrument = "", caption = "", path = NULL, ...)
+\method{plot}{PlateObj}(
+  x,
+  color = "conc",
+  Instrument = "",
+  caption = "",
+  label_size = 15,
+  path = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{PlateObj}
@@ -14,6 +22,8 @@
 \item{Instrument}{A string placed at subtitle}
 
 \item{caption}{A string place at plate caption}
+
+\item{label_size}{numeric. Size of the label. Default is 15}
 
 \item{path}{Default is NULL, if not null, must be a path to save plate image}
 

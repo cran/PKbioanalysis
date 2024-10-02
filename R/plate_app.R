@@ -39,24 +39,26 @@ plate_app <- function() {
       sapply(\(y) x[[y]])
   }
 
-  module_compounds <- function(id, number){
-    ns <- NS(id)
+  # module_compounds <- function(id, number){
+  #   ns <- NS(id)
 
-    tagList(fluidRow(
-      id = ns("cmpd_holder"),
+  #   tagList(fluidRow(
+  #     id = ns("cmpd_holder"),
 
-      column(
-        width = 7,
-        textInput( inputId = ns("compound_name"), label = paste0("Compound ", number))
-      ),
-      column(
-        width = 4,
-        numericInput( inputId = ns("compound_conc"),
-        label = tooltip( trigger = list("conc/unit", bsicons::bs_icon("info-circle")),
-          "Factor for how much concentation of compound per unit"), value = 1, min = 0.001, max = 1000)
-      )
-    ))
-  }
+  #     column(
+  #       width = 7,
+  #       textInput( inputId = ns("compound_name"), label = paste0("Compound ", number))
+  #     ),
+  #     column(
+  #       width = 4,
+  #       numericInput( inputId = ns("compound_conc"),
+  #       label = tooltip( trigger = list("conc/unit", bsicons::bs_icon("info-circle")),
+  #         "Factor for how much concentation of compound per unit"), value = 1, min = 0.001, max = 1000)
+  #     )
+  #   ))
+  # }
+
+  methodsdb_init <- .get_methodsdb()
 
   module_protocols <- function(id, number){
     ns <- NS(id)
@@ -79,7 +81,7 @@ plate_app <- function() {
           numericInput(paste0("equi_vol_prot", number), "Equi Vol", value = 0.5),
         ),
       ),
-      fileInput(paste0("inlet_method_fileinput_prot", number), "Inlet File", accept = c(".txt")),
+      selectInput(paste0("inlet_method_select_prot", number), "Inlet Method", choices = methodsdb_init$method),
       bslib::input_switch(paste0("exploratory_samples_alg_prot", number), "Exploratory Samples", value = FALSE) |>
         bslib::tooltip("Exploratory samples are samples that are not part of the sample list. They are used to check the system"),
       p("Repeats"),
@@ -137,11 +139,21 @@ plate_app <- function() {
   }
 
 
-
   ui <- bslib::page_navbar(
     title = "Plate Management",
     shinyjs::useShinyjs(),
-    bslib::nav_panel(title = "Dashboard", p("Welome to my app!")), ## dashboard panel
+    bslib::nav_panel(title = "Dashboard",
+      p("Welcome to the plate management dashboard. Here you can manage plates, methods, make dilution schemes and create sample lists")),
+    bslib::nav_panel(title = "methods",
+       # create 70 30 layout
+      bslib::layout_sidebar(
+        sidebar = bslib::sidebar(
+          width = 600,
+        actionButton("add_method", "Add New Method"),
+        DT::DTOutput("methods_dt")
+      ),
+        DT::DTOutput("cmpd_methods_dt"),
+    )),
     bslib::nav_panel(title = "Sample Lists",
       bslib::layout_sidebar(
         sidebar = sidebar(
@@ -194,7 +206,7 @@ plate_app <- function() {
                     bslib::accordion_panel(
                       title = "Protocol 1",
                       value = "protocol_1",
-                      fileInput("inlet_method_fileinput_prot1", "Inlet File", accept = c(".txt")),
+                      selectInput("inlet_method_select_prot1", "Inlet Method", choices = ""),
                       bslib::input_switch("exploratory_samples_alg_prot1", "Exploratory Samples", value = FALSE) |>
                           bslib::tooltip("Exploratory samples are samples that are not part of the sample list. They are used to check the system"),
                       p("Repeats"),
@@ -247,19 +259,20 @@ plate_app <- function() {
                             width = 6,
                             selectInput("tray_prot1", "Tray", choices = as.character(1:12), multiple = TRUE)
                           ))),
-                    div(id = "prot_holder"),
-                    accordion_panel(
-                      title = "Compounds dilution",
-                      value = "compounds_accordion",
-                      div(id = "cmpd_holder"),
-                      fluidRow(
-                        column(width = 2, actionButton("add_cmpd", "Add")),
-                        column(width = 2, actionButton("remove_cmpd", "Remove"))),
-                      )
+                    div(id = "prot_holder")#,
+                    # accordion_panel(
+                    #   title = "Compounds dilution",
+                    #   value = "compounds_accordion",
+                    #   div(id = "cmpd_holder"),
+                    #   fluidRow(
+                    #     column(width = 2, actionButton("add_cmpd", "Add")),
+                    #     column(width = 2, actionButton("remove_cmpd", "Remove"))),
+                    #   )
                     ),
                   actionButton("create_sample_list", "Create Sample List")),
                   bslib::navset_bar(
                     id = "sample_list_nav",
+                    bslib::nav_panel("Compound Ratio", DT::DTOutput("cmpd_ratio_seq_dt")),
                     bslib::nav_panel("Sample List",  DT::DTOutput("sample_list_table")),
                     bslib::nav_panel("Summary",
                       p("Check if total volume is OK. Volume will depend on injection and filtration modes"),
@@ -270,7 +283,7 @@ plate_app <- function() {
                         column(width = 8, DT::DTOutput("sample_list_summary")),
                       )),
                     bslib::nav_panel("Export",
-                        selectInput("sample_list_vendor", "Select Vendor", choices = c("masslynx", "masshunter")),
+                        selectInput("sample_list_vendor", "Select Vendor", choices = c("masslynx", "masshunter", "analyst")),
                         actionButton("write_sample_list", "Write Sample List"),
                         downloadButton("export_sample_list", "Export", icon = icon("download"))
                 )))),
@@ -321,7 +334,6 @@ plate_app <- function() {
 
   server <- function(input, output, session) {
     ########################## sample list
-
 
     current_sample_list_metatable <- reactiveVal(.get_samplesdb_metadata())
     output$sample_list_metatable_DT <- DT::renderDT({
@@ -402,77 +414,79 @@ plate_app <- function() {
       paste0("Selected Plates ID: ", paste(selected_ids(), collapse = "& "))
     })
 
+    # insertUI(
+    #   selector = "#cmpd_holder",
+    #   where    = "beforeEnd",
+    #   ui       = tagList(module_compounds("var1", 1))
+    # )
 
 
-    insertUI(
-      selector = "#cmpd_holder",
-      where    = "beforeEnd",
-      ui       = tagList(module_compounds("var1", 1))
-    )
+      # observeEvent(input$add_cmpd, {
+      #   cmpd_last <- sum(input$add_cmpd, 1)
+      #   insertUI(
+      #     selector = "#cmpd_holder",
+      #     where    = "beforeEnd",
+      #     ui       = tagList(module_compounds(paste0("var", cmpd_last), cmpd_last))
+      #   )
+
+      # })
 
 
+      # already_removed <- reactiveVal(1)
+      # observeEvent(input$remove_cmpd, {
+      #   cmpd_last <- names(input) |> grep(pattern = "^var\\d+\\-compound_name", value = TRUE) |>
+      #     gsub(pattern = "^(var)(\\d+).*", replacement = "\\2") |> as.numeric()
 
-    # This chuck look if the number of protocols is increased and add the new protocol
-    # observeEvent(current_injec_protcols(), {
-    #   print("added obs")
-    #   observeEvent(input[[paste0("add_cmpd_prot", current_injec_protcols())]], {
-    #     cmpd_last <- sum(input[[paste0("add_cmpd_prot", 1)]], 1)
-    #     insertUI(
-    #       selector = paste0("#cmpd_holder_prot", current_injec_protcols()),
-    #       where    = "beforeEnd",
-    #       ui       = tagList(module_compounds(paste0("var", cmpd_last), cmpd_last))
-    #     )
+      #   cmpd_last <- cmpd_last[!cmpd_last %in% already_removed()] |> max()
 
-    #   })
+      #   req(cmpd_last > 1)
 
+      #   removeUI(
+      #     selector = paste0("#var", cmpd_last, "-cmpd_holder")
+      #   )
 
-    #   already_removed <- reactiveVal(1)
-    #   observeEvent(input[[paste0("remove_cmpd_prot", current_injec_protcols())]], {
-    #     cmpd_last <- names(input) |> grep(pattern = "^var\\d+\\-compound_name", value = TRUE) |>
-    #       gsub(pattern = "^(var)(\\d+).*", replacement = "\\2") |> as.numeric()
+      #   already_removed(c(already_removed(), cmpd_last))
+      # })
 
-    #     cmpd_last <- cmpd_last[!cmpd_last %in% already_removed()] |> max()
+    ##
+    observeEvent(input$inlet_method_select_prot1, {
+      req(input$inlet_method_select_prot1)
+      .get_method_cmpds(.get_method_id(input$inlet_method_select_prot1)) |>
+      dplyr::mutate(method  = input$inlet_method_select_prot1,
+        ratio = 1) |>
+      dplyr::select("method", "compound", "ratio") |>
+      current_cmpd_df()
+    })
 
-    #     req(cmpd_last > 1)
-
-    #     removeUI(
-    #       selector = paste0("#var", cmpd_last, paste0("-cmpd_holder_prot", current_injec_protcols()))
-    #     )
-
-    #     already_removed(c(already_removed(), cmpd_last))
-    #   })
-    # })
-
-
-      observeEvent(input$add_cmpd, {
-        cmpd_last <- sum(input$add_cmpd, 1)
-        insertUI(
-          selector = "#cmpd_holder",
-          where    = "beforeEnd",
-          ui       = tagList(module_compounds(paste0("var", cmpd_last), cmpd_last))
+    output$cmpd_ratio_seq_dt <- DT::renderDT({
+      req(current_cmpd_df())
+      current_cmpd_df() |>
+        DT::datatable(
+          escape = FALSE,
+          rownames = FALSE,
+          options = list(scrollX=TRUE, scrollY=TRUE, scrollCollapse=TRUE, pageLength = 100),
+          editable = list(target = "all", disable = list(columns = c(0,1)))
         )
+    })
 
-      })
+    proxy_ratio_cmpds = dataTableProxy('cmpd_ratio_seq_dt')
 
+    observeEvent(input$cmpd_ratio_seq_dt_cell_edit, {
+      DT::editData(current_cmpd_df(),
+        input$cmpd_ratio_seq_dt_cell_edit, 'cmpd_ratio_seq_dt',
+        proxy = proxy_ratio_cmpds,
+        rownames = FALSE) |>
+        current_cmpd_df()
+    })
 
-      already_removed <- reactiveVal(1)
-      observeEvent(input$remove_cmpd, {
-        cmpd_last <- names(input) |> grep(pattern = "^var\\d+\\-compound_name", value = TRUE) |>
-          gsub(pattern = "^(var)(\\d+).*", replacement = "\\2") |> as.numeric()
-
-        cmpd_last <- cmpd_last[!cmpd_last %in% already_removed()] |> max()
-
-        req(cmpd_last > 1)
-
-        removeUI(
-          selector = paste0("#var", cmpd_last, "-cmpd_holder")
-        )
-
-        already_removed(c(already_removed(), cmpd_last))
-      })
 
 
   # for each protcol add, extra protocol accordion panel
+    #### methods
+    methodsdb <- reactiveVal(.get_methodsdb()) # get methods from db
+    observeEvent(methodsdb(), {
+      updateSelectInput(session, "inlet_method_select_prot1", choices = methodsdb()$method)
+    })
 
   observeEvent(input$add_protocols, {
     protocol_last <- sum(input$add_protocols, 1)
@@ -488,15 +502,16 @@ plate_app <- function() {
       ui       = tagList(module_protocols(paste0("var", protocol_last), protocol_last))
     )
 
-    insertUI(
-      selector = paste0("#cmpd_holder_prot", protocol_last),
-      where    = "beforeEnd",
-      ui       = tagList(module_compounds("var1", 1))
-    )
+    # insertUI(
+    #   selector = paste0("#cmpd_holder_prot", protocol_last),
+    #   where    = "beforeEnd",
+    #   ui       = tagList(module_compounds("var1", 1))
+    # )
 
     current_injec_protcols(current_injec_protcols() + 1)
-
   }, priority = 1)
+
+
 
    output$plate_db_table <- DT::renderDT({
       # cbind(
@@ -590,17 +605,9 @@ plate_app <- function() {
     })
 
 
-
     current_cmpd_df <- reactiveVal(NULL)
     observeEvent(input$create_sample_list, {
       req(class(current_plate()) == "PlateObj")
-
-      cmpds_df <- data.frame(
-        compound_name =  grep_input("^var\\d+\\-compound_name", input),
-        compound_conc = grep_input("^var\\d+\\-compound_conc", input)
-      )
-      current_cmpd_df(cmpds_df)
-
 
       tryCatch(
         {
@@ -623,7 +630,7 @@ plate_app <- function() {
           for(i in index_prot){
              injseq_list[[i]] <- plates_list |>
               build_injec_seq(descr = input[[paste0("descr_prot", i)]],
-                inlet_method =   input$inlet_method_fileinput_prot1$name,
+                method =   input[[paste0("inlet_method_select_prot", i)]],
                 suffix = input[[paste0("suffix_prot", i)]],
                 tray = input$tray_prot1, # always the same
                 blank_after_top_conc = input[[paste0("blank_after_top_conc_prot", i)]],
@@ -634,9 +641,11 @@ plate_app <- function() {
                 repeat_analyte = input[[paste0("repeat_sample_prot", i)]],
                 repeat_qc = input[[paste0("repeat_qc_prot", i)]],
                 explore_mode = input[[paste0("exploratory_samples_alg_prot", i)]],
-                conc_df = current_cmpd_df(),
+                conc_df = current_cmpd_df() |>
+                  filter(.data$method == input[[paste0("inlet_method_select_prot", i)]]) |>    # filter only correct method
+                  dplyr::select("compound", "ratio"), # only compound and ratio columns
                 inject_vol = input[[paste0("injec_vol_prot", i)]])
-          }
+          } # filter only correct method
 
 
           # enable export button
@@ -810,18 +819,6 @@ plate_app <- function() {
       }
 
       current_dil_df(d)
-      # parallel_dil_df(d[,c(4,5)] |> .gen_graph())
-
-      # nodes <- c(d$v1, d$v0)
-      # adj_matrix <- matrix(0, nrow = length(nodes), ncol = length(nodes))
-      # rownames(adj_matrix) <- colnames(adj_matrix) <- nodes
-      # for (i in 1:(nrow(d))) {
-      #   from <- d$v1[i]
-      #   to <- d$v0[i]
-      #   adj_matrix[from, to] <- 1
-      # }
-
-      # shinyMatrix::updateMatrixInput(session, "lower_tri_matrix", value = adj_matrix)
 
       shinyjs::hide("dil_graph_grviz_card")
       shinyjs::hide("export_dil_graph")
@@ -841,10 +838,11 @@ plate_app <- function() {
          editable = list(target = "all", disable = list(columns = c(4,5,6))))
     })
 
-    proxy = dataTableProxy('dilution_dt')
+    proxy_dil_dt = dataTableProxy('dilution_dt')
     observeEvent(input$dilution_dt_cell_edit, {
       print(input$dilution_dt_cell_edit)
-      DT::editData(current_dil_df(), input$dilution_dt_cell_edit, 'dilution_dt', rownames = FALSE) |>
+      DT::editData(current_dil_df(), input$dilution_dt_cell_edit,
+        'dilution_dt', rownames = FALSE, proxy = proxy_dil_dt)
         current_dil_df()
     })
 
@@ -871,45 +869,6 @@ plate_app <- function() {
     })
 
 
-
-    # trim the matrix and give error if not numeric of off diagonal
-    # observe({
-    #   mat <- input$lower_tri_matrix
-    #   mat[lower.tri(mat)] <- NA  # Set upper triangular part to NA
-    #   diag(mat) <- NA
-
-
-    #    # Restrict values to 0, NA, or 1
-    #   mat <- apply(mat, c(1, 2), function(x) {
-    #   if (is.na(x) || x == 0 || x == 1) {
-    #     return(x)
-    #   } else {
-    #     return(NA)
-    #   }
-    #   })
-
-    #   shinyMatrix::updateMatrixInput(session, "lower_tri_matrix", value = mat)
-    # })
-
-    # observeEvent(input$add_dil_cmpd_btn , {
-    #   req(input$add_dil_cmpd_textinput)
-
-    #   expanded_matrix <- matrix(0, nrow = nrow(input$lower_tri_matrix) + 1, ncol = ncol(input$lower_tri_matrix) + 1)
-    #   rownames(expanded_matrix) <- colnames(expanded_matrix) <- c(rownames(input$lower_tri_matrix), input$add_dil_cmpd_textinput)
-
-    #   # Find the indices of the non-zero elements
-    #   edges <- which(adj_matrix != 0, arr.ind = TRUE)
-
-    #   # Create a dataframe with "to" and "from" columns
-    #   df <- data.frame(
-    #     from = rownames(adj_matrix)[edges[, 1]],
-    #     to = colnames(adj_matrix)[edges[, 2]]
-    #   )
-
-    #   shinyMatrix::updateMatrixInput(session, "lower_tri_matrix", value = expanded_matrix)
-
-    # })
-
     output$dil_graph_grviz_out <- DiagrammeR::renderGrViz({
       req(dil_graphs_observer())
       dil_graphs_observer() |>
@@ -922,15 +881,9 @@ plate_app <- function() {
       dil_graphs_observer()
 
       node_id <- input$dil_graph_grviz_out_click
-      edge_id <- select_edges_by_node_id(dil_graphs_observer(),
-        grep(x = node_id$id,  pattern = "\\d+")) |>
-        get_selection()
-
-       get_edge_df(dil_graphs_observer()) |>
-        filter(id == edge_id) |> pull(.data$label) |> dilution_factor_label()
-
-      # get_edge_df(dil_graphs_observer()) |>
-      #   mutate(label = ifelse(.data$id == edge_id, label, label))
+      DiagrammeR::get_edge_df(dil_graphs_observer()) |>
+        dplyr::filter(.data$to == node_id$nodeValues[[2]]) |>
+        dplyr::pull("label") |> dilution_factor_label()
 
       showModal(modalDialog(
         node_id$nodeValues[[1]],
@@ -1008,21 +961,80 @@ plate_app <- function() {
       tryCatch(
         {
         id <- as.numeric(strsplit(current_plate()$plate_id, "_")[[1]][1])
-        #assign("plate", reuse_plate(id, input$refill_gaps), envir = .GlobalEnv)
-        reuse_plate(id, input$refill_gaps)
+
+        x <- reuse_plate(id, input$refill_gaps)
+        show_alert(
+          title = "Plate Successfully Exported",
+          text = tags$div(
+            h3("A new variable captured in R. Please close this window now")
+          ))
+          shiny::stopApp(x) # return the new plate
+
         } ,
         error = function(e) {showNotification(e$message, type = "error")}
       )
 
     removeModal()
-    show_alert(
-      title = "Plate Successfully Exported",
-      text = tags$div(
-        h3("A new variable has been assigned in the environment. \n you can exit the app.")
-      )
-      )
 
     })
+
+    ## methods
+    observeEvent(input$add_method, {
+      showModal(modalDialog(
+        title = "Add New Method",
+        textInput("method_name", "Method Name"),
+        textInput("method_description", "Description"),
+        p("Add compounds separated by new line"),
+        textAreaInput("compounds_method_input", "Compounds", placeholder = "Compound1\nCompound2\nCompound3"),
+        actionButton("add_method_final_btn", "Add")
+      ))
+    })
+
+    observeEvent(input$add_method_final_btn, {
+      req(input$method_name)
+      req(input$compounds_method_input)
+
+      res <- list(method = input$method_name,
+        description = input$method_description,
+        compounds = strsplit(input$compounds_method_input, "\n")[[1]])
+
+      tryCatch(
+        {
+          .save_cmpd_db(res)
+
+        },
+        error = function(e) {showNotification(e$message, type = "error")}
+      )
+
+      methodsdb(.get_methodsdb())
+
+    })
+
+    output$methods_dt <- DT::renderDT({
+      req(methodsdb())
+      methodsdb() |>
+        DT::datatable(
+          selection = list(mode = "single", target = "row"),
+          options = list(scrollX=TRUE, scrollY=TRUE, scrollCollapse=TRUE)
+        )
+    })
+
+    output$cmpd_methods_dt <- DT::renderDT({
+      # get the method_id from the methodsdb
+      req(methodsdb())
+      req(input$methods_dt_rows_selected)
+      method_id <- methodsdb()[input$methods_dt_rows_selected, "method_id"]
+
+      .get_method_cmpds(method_id) |>
+        DT::datatable(
+          selection = list(mode = "single", target = "row"),
+          options = list(scrollX=TRUE, scrollY=TRUE, scrollCollapse=TRUE)
+        )
+
+    })
+
+
+
 
     # exit button ####
     observeEvent(input$exit, {

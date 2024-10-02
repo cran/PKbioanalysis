@@ -5,6 +5,7 @@
 #' @importFrom checkmate assertSubset
 #' @importFrom DBI dbIsValid
 #' @importFrom DBI dbWriteTable
+#' @importFrom DiagrammeR get_edge_df
 #' @importFrom dplyr as_tibble
 #' @importFrom dplyr tbl
 #' @importFrom DT datatable
@@ -40,6 +41,8 @@
 #' @importFrom stats time
 #' @importFrom tidyselect matches
 #' @importFrom tidyselect starts_with
+#' @importFrom utils packageVersion
 #' @importFrom utils write.csv
+#' @importFrom yaml read_yaml
 ## usethis namespace: end
 NULL

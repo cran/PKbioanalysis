@@ -6,6 +6,9 @@ vignette: >
   %\VignetteIndexEntry{PKbioanalysis overview}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+
+fig_width: 12
+fig_height: 8
 ---
 
 ```{r, include = FALSE}
@@ -25,7 +28,6 @@ library(PKbioanalysis)
 
 ```{r}
 plate <- generate_96() 
-
 plot(plate)
 ```
 
@@ -90,7 +92,6 @@ plot(plate)
 ### Adding samples manually or from external spreadsheet
 
 ```{r}
-
 plate <- generate_96()
 
 plate <- plate |> 
@@ -130,6 +131,7 @@ plot(plate, color = "conc")
 
 #### Food Effect Example
 
+
 ```{r}
 plate <- generate_96() |> 
     add_samples_c(1:4, time = c(0, 10, 30, 60, 120), 
@@ -154,21 +156,17 @@ plates <- make_metabolic_study(
 ```
 
 ```{r}
-
 length(plates)
-
-plot(plates[[1]], color = "samples")
-plot(plates[[2]], color = "samples")
-plot(plates[[3]], color = "samples")
-plot(plates[[4]], color = "samples")
-plot(plates[[5]], color = "samples")
-plot(plates[[6]], color = "samples")
+plot(plates[[1]], color = "samples", label_size = 9)
+plot(plates[[2]], color = "samples", label_size = 9)
+plot(plates[[3]], color = "samples", label_size = 9)
+plot(plates[[4]], color = "samples", label_size = 9)
+plot(plates[[5]], color = "samples", label_size = 9)
+plot(plates[[6]], color = "samples", label_size = 9)
 
 
 ```
 
-```{r, eval = FALSE}
-
+```{r eval = FALSE}
 register_plate(plates)
-
 ```

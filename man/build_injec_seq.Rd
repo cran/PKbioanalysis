@@ -6,7 +6,7 @@
 \usage{
 build_injec_seq(
   plate,
-  inlet_method,
+  method,
   repeat_std = 1,
   repeat_qc = 1,
   repeat_analyte = 1,
@@ -26,7 +26,7 @@ build_injec_seq(
 \arguments{
 \item{plate}{PlateObj object}
 
-\item{inlet_method}{file path specifying the inlet method.}
+\item{method}{choose method from database}
 
 \item{repeat_std}{number of re-injections for calibration standards. Default is 1.}
 
