@@ -4,12 +4,14 @@
 \alias{add_cs_curve}
 \title{Add calibration curve to the plate}
 \usage{
-add_cs_curve(plate, plate_std)
+add_cs_curve(plate, plate_std, rep = 1)
 }
 \arguments{
 \item{plate}{PlateObj}
 
 \item{plate_std}{character}
+
+\item{rep}{numeric. Number of replicates. Default is 1.}
 }
 \value{
 PlateObj

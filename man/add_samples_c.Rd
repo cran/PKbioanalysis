@@ -4,18 +4,28 @@
 \alias{add_samples_c}
 \title{Cartesian product of sample factors to a plate}
 \usage{
-add_samples_c(plate, samples, time = NA, conc = NA, factor = NA, prefix = "S")
+add_samples_c(
+  plate,
+  n_rep,
+  time = NA,
+  conc = NA,
+  factor = NA,
+  dosage = NA,
+  prefix = "S"
+)
 }
 \arguments{
 \item{plate}{PlateObj}
 
-\item{samples}{A vector representing samples names}
+\item{n_rep}{number of samples to be added}
 
 \item{time}{A vector representing time points}
 
 \item{conc}{A vector representing concentration}
 
 \item{factor}{A vector representing factor}
+
+\item{dosage}{A vector representing dosage}
 
 \item{prefix}{A prefix to be added before samples names. Default is "S"}
 }

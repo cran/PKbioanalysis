@@ -143,7 +143,8 @@ plate_app <- function() {
     title = "Plate Management",
     shinyjs::useShinyjs(),
     bslib::nav_panel(title = "Dashboard",
-      p("Welcome to the plate management dashboard. Here you can manage plates, methods, make dilution schemes and create sample lists")),
+            uiOutput("plate_creation_ui")
+      ),
     bslib::nav_panel(title = "methods",
        # create 70 30 layout
       bslib::layout_sidebar(
@@ -167,29 +168,38 @@ plate_app <- function() {
 
     )), ## sample lists panel
     bslib::nav_panel(title = "Plates",           ## plates panel
-      bslib::layout_column_wrap(
-        width = NULL, height = 1200,
-        style = htmltools::css(grid_template_columns = "2fr 1fr"),
-        bslib::card(
-          full_screen = TRUE,
-          card_header("Plate Map", popover(
-            bs_icon("gear"),
-            selectInput("plate_map_color_toggle", "Color By", choices = c("conc", "factor", "time", "TYPE", "samples")),
-            numericInput("plate_map_font_size", "Font Size", value = 12),
-            title = "Color By"
-          )),
-          plotOutput("plate_map_plot1", width = "100%", height = "500px" )
-        ),
+      bslib::layout_columns(
+        # style = htmltools::css(grid_template_columns = "2fr 1fr"),
+        col_widths = c(8, 4),
+        bslib::layout_columns(
+          col_widths = c(12),
+          row_heights = c(4,1),
+          bslib::card(
+            full_screen = TRUE,
+            card_header("Plate Map", popover(
+              bs_icon("gear"),
+              selectInput("plate_map_color_toggle", "Color By", choices = c("conc", "factor", "dosage", "time", "samples")),
+              selectInput("transform_dilution", "Transform Dilution", choices = c(TRUE, FALSE), selected = FALSE),
+              numericInput("plate_map_font_size", "Font Size", value = 1, step = 0.2),
+              title = "Color By")),
+            plotOutput("plate_map_plot1", width = "100%", height = "100%" )
+          ),
+          bslib::card(
+            max_height = 150,
+              layout_columns(
+                # actionBttn("create_new_plate_btn", "Add New Plate", icon = icon("plus"), color = "default"),
+                # actionBttn("make_metabolic_study_btn", "Make Metabolic Study", icon = icon("flask"), color = "default"),
+                actionBttn("reuse_plate_button", "Reuse Plate", icon = icon("redo"), color = "primary")
+              )
+            )),
         bslib::card(
           textOutput("plate_id_plateview_output"),
           actionButton("change_plate_meta_btn", "Change Plate Description", icon = icon("edit")),
           downloadButton( "export_plate_image", "Export Plate Image", icon = icon("download")),
-          actionBttn("reuse_plate_button", "Reuse Plate", icon = icon("redo"), color = "primary"),
           # tabset with plate, sample list, dilution
           actionButton("clear_selected_plates_btn", "Clear All"),
           DT::DTOutput("plate_db_table")
-            ))),
-
+          ))),
     bslib::nav_panel(title = "Generators",       ## generators panel
       fluidPage(
           # tabset with plate, sample list, dilution
@@ -293,7 +303,7 @@ plate_app <- function() {
                         width = 1/2, #height = 100,
                         numericInput("dil_factor", "Parallel Dilution Factor", value = "10"),
                         textInput("dil_unit", "Dilution Unit", value = "ng"),
-                        selectInput("dil_type", "Vial Type", choices = c("Standard", "QC")),
+                        selectInput("dil_type", "Vial Type", choices = c("Standard", "QC", "DQC")),
                         selectInput("dil_rep", "Replicate", choices = 1:10)
                       ),
                       actionButton("dilute", "Dilute", icon = icon("flask")),
@@ -310,16 +320,25 @@ plate_app <- function() {
                       #   cols = list(names = TRUE),
                       #   class = "numeric"
                       # ),
-                      DT::DTOutput("dilution_dt"),
+                      rhandsontable::rHandsontableOutput("dilution_dt"),
                       actionButton("gen_dil_graph", "Generate Dilution Graph", icon = icon("chart-line")),
                       bslib::card(
                           id = "dil_graph_grviz_card",
                           full_screen = TRUE,
-                          height = 500,
+                          height = 700,
                           card_header("Schema"),
                           DiagrammeR::grVizOutput("dil_graph_grviz_out", width = "100%")),
                       downloadButton("export_dil_graph", "Export", icon = icon("download"))
-            )
+            ), 
+            # design 
+          bslib::nav_panel("Design",
+            h2("Design"),
+            layout_column_wrap(
+              width = 1/2, #height = 100,
+              selectInput("design_rep", "Layout", choices = 1:10)
+            ),
+            DiagrammeR::grVizOutput("design_graph_grviz_out", width = "100%"),
+          )
           ))),
     nav_spacer(),
     bslib::nav_menu(
@@ -381,6 +400,7 @@ plate_app <- function() {
     )
 
 
+    #################################################################################################################
     ############################### plate
 
     # used to create checkboxes
@@ -391,6 +411,32 @@ plate_app <- function() {
           }
           inputs
       }
+
+
+    # create new plate button
+    observeEvent(input$create_new_plate_btn, {
+      showModal(modalDialog(
+        title = "Create New Plate",
+        textInput("plate_descr", "Description", value = ""),
+        selectInput("start_row_plate_input", "Start Row", choices = LETTERS[1:8]),
+        selectInput("start_col_plate_input", "Start Column", choices = 1:12),
+        actionButton("create_plate_btn_final", "Create")
+      ))
+    })
+
+
+
+    # create metabolic study button
+    observeEvent(input$make_metabolic_study_btn, {
+      showModal(modalDialog(
+        title = "Create Metabolic Study",
+        textInput("metabolic_study_cmpds", "Compounds", value = "", placeholder = "comma separated"),
+        textInput("time_points_metabolic_study_input", "Time Points", value = "", placeholder = "comma separated"),
+        numericInput("n_NAD_metabolic_study_input", "NADPH replicates", value = 3),
+        numericInput("n_noNAD_metabolic_study_input", "No NADPH replicates", value = 3),
+        actionButton("create_metabolic_study_btn_final", "Create")
+      ))
+    })
 
     ############################# Gen
 
@@ -410,7 +456,7 @@ plate_app <- function() {
 
 
     output$plate_ids_for_sample_list <- renderText({
-      req(class(current_plate()) == "PlateObj")
+      req(class(current_plate()) == "RegisteredPlate")
       paste0("Selected Plates ID: ", paste(selected_ids(), collapse = "& "))
     })
 
@@ -455,6 +501,7 @@ plate_app <- function() {
       dplyr::mutate(method  = input$inlet_method_select_prot1,
         ratio = 1) |>
       dplyr::select("method", "compound", "ratio") |>
+      distinct() |>
       current_cmpd_df()
     })
 
@@ -540,8 +587,7 @@ plate_app <- function() {
 
       # select last id for current plate list
       .retrieve_plate(rev(selected_ids())[[1]]) |> current_plate()
-      plot(current_plate(), color = input$plate_map_color_toggle) +
-          theme(text = element_text(size = input$plate_map_font_size))
+      plot(current_plate(), color = input$plate_map_color_toggle, label_size = input$plate_map_font_size, transform_dil = input$transform_dilution) 
     })
 
 
@@ -566,12 +612,14 @@ plate_app <- function() {
 
     # remove dilutions tab if no std
     observeEvent(current_plate(), {
-      if(.last_std(current_plate()) == 0){
+      if(.last_entity(current_plate(), "Standard") == 0){
         nav_hide("generator_nav", "Dilution")
       } else{
         nav_show("generator_nav", "Dilution")
       }
     })
+
+
 #########################
 
 
@@ -607,7 +655,7 @@ plate_app <- function() {
 
     current_cmpd_df <- reactiveVal(NULL)
     observeEvent(input$create_sample_list, {
-      req(class(current_plate()) == "PlateObj")
+      req(class(current_plate()) == "RegisteredPlate")
 
       tryCatch(
         {
@@ -678,7 +726,7 @@ plate_app <- function() {
     observeEvent(input$change_plate_meta_btn, {
       showModal(modalDialog(
         title = "Change Plate Description",
-        textInput("new_plate_descr", "New Description", value = current_plate()$desc),
+        textInput("new_plate_descr", "New Description", value = current_plate()@descr),
         pickerInput("compounds_metadata", "Compounds", choices = "", multiple = TRUE, options = list(`live-search` = TRUE)),
         pickerInput("instruments_metadata", "Instruments", choices = "", multiple = TRUE, options = list(`live-search` = TRUE)),
         pickerInput("IS_metadata", "Internal Standards", choices = "", multiple = TRUE, options = list(`live-search` = TRUE)),
@@ -687,7 +735,7 @@ plate_app <- function() {
       ))
     })
     observeEvent(input$change_plate_descr_btn_final, {
-      req(class(current_plate()) == "PlateObj")
+      req(class(current_plate()) == "RegisteredPlate")
       tryCatch(
         {
           current_plate() |> plate_metadata(input$new_plate_descr)
@@ -710,7 +758,7 @@ plate_app <- function() {
         bluepal <- colorRampPalette(c("blue", "white"))(length(unique_conc)) |>
           paste0(50)
 
-        req(class(current_plate()) == "PlateObj")
+        req(class(current_plate()) == "RegisteredPlate")
         req(current_injec_seq())
 
         showNotification("Check the summary tab for total volume", type = "message")
@@ -742,7 +790,7 @@ plate_app <- function() {
     # outputOptions(output, "min_vol", suspendWhenHidden = FALSE)
 
     output$sample_list_summary <- DT::renderDT({
-      req(class(current_plate()) == "PlateObj")
+      req(class(current_plate()) == "RegisteredPlate")
       req(current_injec_seq())
 
       if(!lock_export()){
@@ -753,14 +801,16 @@ plate_app <- function() {
         current_injec_seq_summary(d)
 
         DT::datatable(d, options = list(scrollX=TRUE,
-          scrollCollapse=TRUE , dom = "ft", scrollY = "550px"))
+          scrollCollapse=TRUE , dom = "ft", scrollY = "550px"))  |>
+          DT::formatStyle(columns = "total_vol", valueColumns = "total_vol",
+            backgroundColor = DT::styleEqual(unique(d$total_vol), colorRampPalette(c("red", "white"))(length(unique(d$total_vol)))))
       } else{
         NULL
       }
     })
 
     output$total_injections <- renderText({
-      req(class(current_plate()) == "PlateObj")
+      req(class(current_plate()) == "RegisteredPlate")
       req(current_injec_seq())
 
       if(!lock_export()){
@@ -773,7 +823,7 @@ plate_app <- function() {
     })
 
     output$max_vol <- renderText({
-      req(class(current_plate()) == "PlateObj")
+      req(class(current_plate()) == "RegisteredPlate")
       req(current_injec_seq())
 
       if(!lock_export()){
@@ -785,7 +835,7 @@ plate_app <- function() {
     })
 
     output$min_vol <- renderText({
-      req(class(current_plate()) == "PlateObj")
+      req(class(current_plate()) == "RegisteredPlate")
       req(current_injec_seq())
 
       if(!lock_export()){
@@ -799,8 +849,15 @@ plate_app <- function() {
     ### Dilutions
     current_dil_df <- reactiveVal(NULL)
     parallel_dil_df <- reactiveVal(NULL)
+
+    observeEvent(input$dil_type, {
+      if(input$dil_type == "QC"){
+        updateSelectInput(session, "dil_rep", choices = 1:.last_entity(current_plate(), "QC"), selected = 1)
+      }
+    })
+
     observeEvent(input$dilute, { # click dilute button to only generate parallel table
-      req(class(current_plate()) == "PlateObj")
+      req(class(current_plate()) == "RegisteredPlate")
 
       d <- tryCatch(
         .parallel_dilution(current_plate(),
@@ -824,48 +881,53 @@ plate_app <- function() {
       shinyjs::hide("export_dil_graph")
       })
 
-    output$dilution_dt <- DT::renderDT({
-      req(class(current_plate()) == "PlateObj")
+
+    output$dilution_dt <- rhandsontable::renderRHandsontable({
+      req(class(current_plate()) ==  "RegisteredPlate")
       req(current_dil_df())
 
+     columns = data.frame(#title=c('From/To', 'From/to', 'From/to', 'From/to', 'Plate', "TYPE"),
+                    type=c('text', 'text', 'text', 'text', 'text', 'text'))
       current_dil_df() |>
-        DT::datatable(
-        # colnames = rep("", ncol(current_dil_df())),
-        rownames = FALSE,
-        colnames = c(rep("From/To", 4), "To",  "Type"),
-        options = list(ordering = FALSE,
-                  dom = "ft", scrollY = "300px", scrollX = TRUE, pageLength = 10000),
-         editable = list(target = "all", disable = list(columns = c(4,5,6))))
+        dplyr::mutate(across(everything(), as.character)) |>
+        rhandsontable::rhandsontable(useTypes = TRUE) |>
+        rhandsontable::hot_col(c("v1"), readOnly = TRUE)  |>
+        rhandsontable::hot_col(c("v0"), readOnly = TRUE) |>
+        rhandsontable::hot_col(c("TYPE"), readOnly = TRUE) |>
+        rhandsontable::hot_col(c("dil"), readOnly = TRUE) |>
+        rhandsontable::hot_context_menu(allowRowEdit = FALSE, allowColEdit = FALSE)
     })
 
-    proxy_dil_dt = dataTableProxy('dilution_dt')
-    observeEvent(input$dilution_dt_cell_edit, {
-      print(input$dilution_dt_cell_edit)
-      DT::editData(current_dil_df(), input$dilution_dt_cell_edit,
-        'dilution_dt', rownames = FALSE, proxy = proxy_dil_dt)
-        current_dil_df()
+    observeEvent(input$dilution_dt, {
+      rhandsontable::hot_to_r(input$dilution_dt) |> current_dil_df()
     })
+
 
     dil_graphs_observer <- reactiveVal(NULL)
     observeEvent(input$gen_dil_graph, {
-      req(class(current_plate()) == "PlateObj")
+      req(class(current_plate()) ==  "RegisteredPlate")
       req(current_dil_df())
 
-      d <- current_dil_df()
-      d[d == ""] <- NA
-      x <- d |>
-        select( where(function(x) !all(is.na(x)))) |> # FIXME
-        # group_by(TYPE) |> # to make sure not mixing both things
-        tidyr::fill(everything(), .direction = "downup") |>
-        select(-"TYPE") |>
-        # ungroup() |>
-        # .multi_graph()
-        .gen_graph()
+      tryCatch(
+        {
+          d <- current_dil_df()
+          d[d == ""] <- NA
+          x <- d |>
+            select( where(function(x) !all(is.na(x)))) |> # FIXME
+            # group_by(TYPE) |> # to make sure not mixing both things
+            tidyr::fill(everything(), .direction = "downup") |>
+            select(-"TYPE", -"dil") |>
+            # ungroup() |>
+            # .multi_graph()
+            .gen_graph()
 
-      dil_graphs_observer(x)
+          dil_graphs_observer(x)
 
-      shinyjs::show("dil_graph_grviz_card")
-      shinyjs::show("export_dil_graph")
+          shinyjs::show("dil_graph_grviz_card")
+          shinyjs::show("export_dil_graph")
+        },
+        error = function(e) {showNotification(e$message, type = "error")}
+      )
     })
 
 
@@ -880,9 +942,11 @@ plate_app <- function() {
     observeEvent(  input$dil_graph_grviz_out_click, {
       dil_graphs_observer()
 
+
       node_id <- input$dil_graph_grviz_out_click
+      node_label <- ifelse(length(node_id$nodeValues) == 3, node_id$nodeValues[[3]], node_id$nodeValues[[2]])
       DiagrammeR::get_edge_df(dil_graphs_observer()) |>
-        dplyr::filter(.data$to == node_id$nodeValues[[2]]) |>
+        dplyr::filter(.data$to == node_label) |>
         dplyr::pull("label") |> dilution_factor_label()
 
       showModal(modalDialog(
@@ -906,6 +970,21 @@ plate_app <- function() {
       }
     )
 
+###############################################################################################
+    ### design 
+  
+output$design_graph_grviz_out <- DiagrammeR::renderGrViz({
+    req(class(current_plate()) ==  "RegisteredPlate")
+    tryCatch(
+      current_plate() |>
+      plot_design() |>
+      render_graph(),
+      error = function(e) {showNotification(e$message, type = "error")}
+    )
+  })
+
+    
+###############################################################################################
     # export
     exported_list <- reactiveVal(NULL)
     observeEvent(input$write_sample_list, {
@@ -923,7 +1002,7 @@ plate_app <- function() {
       current_sample_list_metatable(.get_samplesdb_metadata())
     })
     output$plate_id_plateview_output <- renderText({
-      paste0("Plate ID:", current_plate()$plate_id)
+      paste0("Plate ID:", current_plate()@plate_id)
     })
     output$export_sample_list <- downloadHandler(
       filename =  function(){
@@ -937,17 +1016,18 @@ plate_app <- function() {
 
     output$export_plate_image <- downloadHandler(
       filename = function(){
-        paste0(current_plate()$plate_id, ".png")
+        paste0(current_plate()@plate_id, ".png")
       },
       content = function(file){
         ggsave(file,  current_plate() |>
-            plot(color = input$plate_map_color_toggle))
+            plot(color = input$plate_map_color_toggle, label_size = input$plate_map_font_size, transform_dil = input$transform_dilution),
+            width = 12, height = 8)
       }
     )
 
     # reuse plate
     observeEvent(input$reuse_plate_button, {
-      current_plate_id <- current_plate()$plate_id
+      current_plate_id <- current_plate()@plate_id
       showModal(modalDialog(
         title = "Reuse Plate",
         h3("Plate ID: ", current_plate_id),
@@ -957,10 +1037,10 @@ plate_app <- function() {
     })
 
     observeEvent(input$reuse_plate_final_btn, {
-      req(class(current_plate()) == "PlateObj")
+      req(class(current_plate()) == "RegisteredPlate")
       tryCatch(
         {
-        id <- as.numeric(strsplit(current_plate()$plate_id, "_")[[1]][1])
+        id <- as.numeric(strsplit(current_plate()@plate_id, "_")[[1]][1])
 
         x <- reuse_plate(id, input$refill_gaps)
         show_alert(
@@ -979,24 +1059,73 @@ plate_app <- function() {
     })
 
     ## methods
+    current_method_capture_df <- reactiveVal(NULL)
     observeEvent(input$add_method, {
+      i <- rep(NA, 5)
+
+      current_method_capture_df(data.frame(compound = i, q1 = i, q3 = i, qualifier = i) |>
+      dplyr::mutate(compound = as.character(.data$compound),
+        q1 = as.numeric(.data$q1), q3 = as.numeric(.data$q3), qualifier = as.logical(FALSE)))
+
+
       showModal(modalDialog(
         title = "Add New Method",
-        textInput("method_name", "Method Name"),
-        textInput("method_description", "Description"),
-        p("Add compounds separated by new line"),
-        textAreaInput("compounds_method_input", "Compounds", placeholder = "Compound1\nCompound2\nCompound3"),
-        actionButton("add_method_final_btn", "Add")
-      ))
+        # either import a YAML file or manually add
+        fluidPage(
+
+          textInput("method_name", "Method Name"),
+          textInput("method_description", "Description"),
+          textInput("method_gradient", "Gradient"),
+          bslib::tooltip( bsicons::bs_icon("question-circle"),
+            "For more compounds: Right-click > Insert row.",
+              placement = "right"),
+          rhandsontable::rHandsontableOutput("cmpd_methods_entry_dt"),
+          actionButton("add_method_final_btn", "Add")
+        )))
+
+    })
+
+    output$cmpd_methods_entry_dt <- rhandsontable::renderRHandsontable({
+      req(current_method_capture_df())
+            current_method_capture_df() |>
+              rhandsontable::rhandsontable(useTypes = TRUE)
+          })
+    observeEvent(input$cmpd_methods_entry_dt, {
+      rhandsontable::hot_to_r(input$cmpd_methods_entry_dt) |> current_method_capture_df()
     })
 
     observeEvent(input$add_method_final_btn, {
       req(input$method_name)
-      req(input$compounds_method_input)
+
+      # remove complete NA rows
+      # switch any "" to NA
+      capture_method_cmpd_df <- current_method_capture_df() |>
+        dplyr::mutate(q1 = as.numeric(.data$q1), q3 = as.numeric(.data$q3)) |>  # convert to numeric|>
+        dplyr::mutate(across(everything(), ~ifelse(. == "", NA, .))) |>
+        dplyr::filter(dplyr::if_all(-c("qualifier"), ~!is.na(.)))  # remove complete NA rows
+
+      req(nrow(capture_method_cmpd_df) > 0)
+
+      tryCatch(
+        {
+        # check if any cmpd is NA.
+        if(any(is.na(capture_method_cmpd_df$compounds))){
+          stop("Compounds cannot be empty")
+        }
+
+        # if there is duplicate cmpd
+        if(any(duplicated(capture_method_cmpd_df$compounds))){
+          stop("Duplicate compounds detected")
+        }
+        },
+        error = function(e) {showNotification(e$message, type = "error")}
+        )
+
 
       res <- list(method = input$method_name,
         description = input$method_description,
-        compounds = strsplit(input$compounds_method_input, "\n")[[1]])
+        gradient = input$method_gradient,
+        compounds = capture_method_cmpd_df)
 
       tryCatch(
         {

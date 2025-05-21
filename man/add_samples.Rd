@@ -4,20 +4,36 @@
 \alias{add_samples}
 \title{Add unknown samples to a plate}
 \usage{
-add_samples(plate, samples, time = NA, conc = NA, factor = NA, prefix = "S")
+add_samples(
+  plate,
+  samples,
+  time = NA,
+  conc = NA,
+  dil = NA,
+  factor = NA,
+  dosage = NA,
+  prefix = "S",
+  vtime = FALSE
+)
 }
 \arguments{
 \item{plate}{PlateObj}
 
-\item{samples}{A vector representing samples names}
+\item{samples}{A vector representing samples names. Must be unique.}
 
-\item{time}{A vector representing time points}
+\item{time}{A vector representing time points. If vtime = FALSE, time will propagate to all samples.}
 
-\item{conc}{A vector representing concentration}
+\item{conc}{A vector representing concentration. Must be same length as samples.}
 
-\item{factor}{A vector representing factor}
+\item{dil}{A vector representing dilution factor. Must be same length as samples.}
+
+\item{factor}{A vector representing factor. Must be same length as samples.}
+
+\item{dosage}{A vector representing dosage. Must be same length as samples.}
 
 \item{prefix}{A prefix to be added before samples names. Default is "S"}
+
+\item{vtime}{A logical. If TRUE, time is a vector of sample length as samples. Default is FALSE.}
 }
 \value{
 PlateObj
@@ -27,6 +43,9 @@ Add unknown samples to a plate
 }
 \details{
 final name will be of form. Prefix-SampleName-Time-Concentration-Factor
+samples must be a unique vector and did not exist in the plate before. 
+Time is either a vector or a single value. If it is a vector, it will be repeated for each sample.
+Conc, dil, factor and dosage are either a vector or a single value. If it is a vector, it must be the corrosponding length of samples.
 }
 \examples{
 plate <- generate_96() |>

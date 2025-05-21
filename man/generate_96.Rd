@@ -5,14 +5,14 @@
 \title{Generate 96 Plate
 Generate a typical 96 well plate. User need to specify the empty rows which a going to be used across the experiment.}
 \usage{
-generate_96(descr = "", empty_rows = NULL, extra_fill = 0)
+generate_96(descr = "", start_row = "A", start_col = 1)
 }
 \arguments{
 \item{descr}{plate description.}
 
-\item{empty_rows}{vector of letters corresponding to empty rows in a 96 well plate.}
+\item{start_row}{A letter corresponding to empty rows in a 96 well plate. Default is A.}
 
-\item{extra_fill}{additional spots to be ignored from the first empty row.}
+\item{start_col}{A number indicating a column number to start with, given the start row. Default is 1.}
 }
 \value{
 PlateObj
@@ -25,7 +25,7 @@ Generate a typical 96 well plate. User need to specify the empty rows which a go
 plate <- generate_96()
 plot(plate)
 
-plate <- generate_96("calibration", empty_rows = c("C", "D", "E"), extra_fill = 11)
+plate <- generate_96("calibration", start_row = "C", start_col = 11)
 plot(plate)
 
 }

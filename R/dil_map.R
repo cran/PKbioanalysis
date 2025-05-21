@@ -1,4 +1,5 @@
 #'@import units
+#'@noRd 
 .conc_ratio <- function(c1, c2){
   # assert starts with digit
   stopifnot(grepl("^\\d.*", c1))
@@ -16,9 +17,12 @@
   # assert either both has units or not
   is.empty <- \(x) x == ""
 
-  stopifnot(is.empty(unit_c2) == is.empty(unit_c1))
-  stopifnot(is.numeric(c1) & is.numeric(c2))
+  if(is.empty(unit_c2) != is.empty(unit_c1)) {
+    stop("Either both c1 and c2 have units or neither has units")
+  }
 
+
+  stopifnot(is.numeric(c1) & is.numeric(c2))
 
   if(!is.empty(unit_c1)) {
     units::units_options(set_units_mode = "standard")
@@ -26,6 +30,11 @@
     c1 <- units::set_units(c1, unit_c1)
     c2 <- units::set_units(c2, unit_c2)
   }
+
+  if(c1 < c2){
+    stop("c1 must be greater than c2")
+  }
+  
 
   # return ratio factor as factor:1
   (c1/c2) |> as.character()
@@ -50,11 +59,12 @@
     }
   }
 
-  dplyr::distinct(edges) |> 
-    dplyr::mutate(color = sample(grDevices::colors(), n())) |>
-    dplyr::rowwise() |>
-    dplyr::mutate(label = paste0("1:", .conc_ratio(.data$from, .data$to)))
+  edges_df  <- dplyr::distinct(edges) |> 
+    dplyr::mutate(color = sample(grDevices::colors(), n())) 
+  .conc_ratio <- Vectorize(.conc_ratio)
+  edges_df$label <- paste0("1:", .conc_ratio(edges_df$from, edges_df$to))
 
+  edges_df
 }
 
 
@@ -113,17 +123,17 @@
 .parallel_dilution <- function(plate, fold = 10, unit = "ng/ml", type, rep = 1){
   checkmate::assertNumeric(fold, lower = 0.1, upper = 10000)
   checkmate::assertNumber(rep, lower = 1, upper = 20)
-  checkmate::assertChoice(type, choices = c("Standard", "QC") )
-  df <- plate$df
+  checkmate::assertChoice(type, choices = c("Standard", "QC", "DQC") )
+  df <- plate@df
 
-  if(.last_std(plate) == 0){
+  if(.last_entity(plate, "Standard") == 0){
     stop("No standard found")
   }
 
-  df <- df |> dplyr::filter(.data$TYPE == type, .data$std_rep == rep) |>
-    dplyr::mutate(v1 = paste0(fold * as.numeric(.data$conc), unit)) |>
-    dplyr::mutate(v0 = paste0(.data$conc, unit, "_", .data$SAMPLE_LOCATION)) |>
-    dplyr::select(matches("v1"), matches("v0"), matches("TYPE"))
+  df <- df |> dplyr::filter(.data$TYPE == type, .data$std_rep == 1, .data$e_rep == !!rep) |>
+    dplyr::mutate(v1 = paste0(fold * as.numeric(.data$conc)/.data$dil, unit)) |>
+    dplyr::mutate(v0 = paste0(as.numeric(.data$conc)/.data$dil, unit, "_", .data$SAMPLE_LOCATION)) |>
+    dplyr::select(matches("v1"), matches("v0"), matches("TYPE"), matches("dil"))
 
   if(nrow(df) < 1 ){
     stop("This combination is not present in the plate")

@@ -7,6 +7,9 @@ test_that("retreive database", {
     .save_cmpd_db(x)
     .get_methodsdb() |> expect_no_error()
     .get_method_cmpds(1)$compound |> 
-        expect_equal(x$compounds)
+        expect_equal(x$compounds$compound)
+
+    # repeat the call on same transitons is not allowed.
+    .save_cmpd_db(x) |> expect_error()
 })
 

@@ -13,365 +13,6 @@
 }
 
 
-#' Create Injection Sequence
-#'
-#' @param plate PlateObj object
-#' @param method choose method from database
-#' @param repeat_std number of re-injections for calibration standards. Default is 1.
-#' @param repeat_analyte number of re-injections for unknown samples. Default is 1
-#' @param repeat_qc number of re-injections for QC wells. Default is 1
-#' @param blank_after_top_conc If TRUE, adding blank after high concentrations of standards and QCS.
-#' @param blank_at_end If True, adding blank at the end of queue.
-#' @param system_suitability Number of re-injections for suitability vial.
-#' @param blank_every_n If no QCs, frequency of injecting blanks between analytes.
-#' @param inject_vol volume of injection in micro liters.
-#' @param descr Run description.
-#' @param suffix string to be added to the end of the filename. Default is "1".
-#' @param prefix string at the beginning of the filename. Default is today's date.
-#' @param explore_mode options either TRUE or FALSE. Default if FALSE.
-#' @param tray Location in sample manager.
-#' @param conc_df data.frame matching compound name to a scaling factor. Maximum 20 compounds allowed.
-#'
-#' @details
-#' explore_mode controls if exploratory samples are to be injected. A random sample from each CS and QC group will be sampled along with 1 blank sample.
-#' @returns InjecListObj object
-#'@export
-build_injec_seq <- function(plate,
-                        method,
-                        repeat_std = 1,
-                        repeat_qc = 1,
-                        repeat_analyte = 1,
-                        blank_after_top_conc = TRUE,
-                        blank_at_end = TRUE,
-                        system_suitability = 0,
-                        blank_every_n = NULL,
-                        inject_vol,
-                        descr = "",
-                        prefix = Sys.Date(),
-                        suffix = "1",
-                        tray = 1,
-                        explore_mode = FALSE,
-                        conc_df = NULL) {
-    UseMethod("build_injec_seq")
-}
-
-
-#'@export
-#'@returns InjecListObj object
-build_injec_seq.MultiPlate <- function( plate, method,
-  repeat_std = 1, repeat_qc = 1, repeat_analyte = 1,
-  blank_after_top_conc = TRUE, blank_at_end = TRUE, system_suitability = 0,
-  blank_every_n = NULL, inject_vol, descr = "",
-  prefix = Sys.Date(), suffix = "1", tray, explore_mode = FALSE, conc_df = NULL) {
-
-  checkmate::assertCharacter(tray, min.len = 1, max.len = 12, unique = TRUE)
-
-  if(length(plate) == 1){
-    plate <- plate[[1]]
-  } else{
-    ## assert length of tray is equal to number of plates
-    if(length(tray) != length(plate)){
-      stop("Number of tray slots must be equal to number of plates")
-    }
-    ## assert all plates are registered
-    if(!all(sapply(plate, .is_registered))){
-      stop("All plates are not registered. Please register the plates first.")
-    }
-
-    m <- lapply(plate, function(x) x$plate)
-    m <- do.call(rbind, m)
-
-    df <- lapply(1:length(plate), function(i){
-      x <- plate[[i]]$df
-      x$tray <- tray[i]
-      x
-    })
-
-    df <- do.call(rbind, df)
-
-    plate_id <- sapply(plate, function(x) x$plate_id)
-
-    descr <- sapply(plate, function(x) x$descr) |> paste0(collapse = ", ")
-
-    empty_rows <- sapply(plate, function(x) x$empty_rows)
-
-    last_modified <- sapply(plate, function(x) x$last_modified)
-
-    plate <- .plate(m, df, plate_id, empty_rows, last_modified, descr = )
-    class(plate) <- c("RegisteredPlate", "PlateObj")
-
-  }
-
-  build_injec_seq(plate, method = method,
-                  repeat_std = repeat_std, repeat_qc = repeat_qc, repeat_analyte = repeat_analyte,
-                  blank_after_top_conc = blank_after_top_conc, blank_at_end = blank_at_end,
-                  system_suitability = system_suitability, blank_every_n = blank_every_n,
-                  inject_vol = inject_vol, descr = descr, prefix = prefix, suffix = suffix,
-                  tray = tray, explore_mode = explore_mode, conc_df = conc_df)
-
-}
-
-#' @importFrom dplyr bind_rows bind_cols mutate add_row filter arrange count group_by group_modify ungroup select
-#' @export
-#' @returns InjecListObj object
-build_injec_seq.PlateObj <- function(plate,
-                        method,
-                        repeat_std = 1,
-                        repeat_qc = 1,
-                        repeat_analyte = 1,
-                        blank_after_top_conc = TRUE,
-                        blank_at_end = TRUE,
-                        system_suitability = 0,
-                        blank_every_n = NULL,
-                        inject_vol,
-                        descr = "",
-                        prefix = Sys.Date(),
-                        suffix = "1",
-                        tray = 1,
-                        explore_mode = FALSE,
-                        conc_df = NULL) {
-
-  checkmate::assertNumber(repeat_std, finite = TRUE, lower = 1)
-  checkmate::assertNumber(repeat_qc, finite = TRUE, lower = 1)
-  checkmate::assertNumber(repeat_analyte, finite = TRUE, lower = 1)
-  checkmate::assertNumeric(inject_vol, finite = TRUE, lower = 0.1)
-  checkmate::assertNumber(blank_every_n, null.ok = TRUE, lower = 1, finite = TRUE)
-  checkmate::assertNumber(system_suitability, lower = 0, finite = TRUE)
-  checkmate::assertChoice(explore_mode, choices = c(TRUE, FALSE))
-  checkmate::checkString(descr, null.ok = TRUE)
-  # checkmate::assertString(prefix)
-  checkmate::assertString(suffix)
-  checkmate::assertCharacter(tray, min.len = 1, max.len = 12, unique = TRUE)
-  # checkmate::assertString(tray)
-  checkmate::assertDataFrame(conc_df,
-    null.ok = TRUE,
-    min.rows = 1,
-    max.rows = 20,
-    type = c("character", "numeric"),
-    col.names = "named", ncols = 2, any.missing =  FALSE)
-
-  # assert plate is registered
-  if(!.is_registered(plate)){
-    stop("Plate is not registered. Please register the plate first.")
-  }
-
-  current_plate_id <- plate$plate_id
-
-  # add tray column if single tray (previous call will make it non-NULL if multiplate)
-  if(!("tray" %in% colnames(plate$df))){
-    stopifnot(length(tray) == 1)
-    if(length(tray) != 1){
-      stop("Tray must be a single value for single plate")
-    }
-    plate$df$tray <- tray
-  }
-  plate <-
-    plate$df |> dplyr::mutate(SAMPLE_LOCATION = paste0(tray, ":", .data$SAMPLE_LOCATION))
-
-  df <- plate[FALSE, ] # empty df, same dims
-
-  double_blanks <- dplyr::filter(plate, .data$TYPE == "DoubleBlank")
-  IS_blanks <- dplyr::filter(plate, .data$TYPE == "ISBlank")
-  # locate positive blanks
-  blank_list <- dplyr::filter(plate, .data$TYPE == "Blank")
-  # find top conc in std
-  std_list <- dplyr::filter(plate, .data$TYPE == "Standard") |> dplyr::arrange(as.numeric(.data$std_rep), as.numeric(.data$conc))
-  # find top conc in qc
-  qc_list <- dplyr::filter(plate, .data$TYPE == "QC") |>  dplyr::arrange(as.numeric(.data$std_rep), .data$value)
-  analyte_list <- dplyr::filter(plate, .data$TYPE == "Analyte") |> dplyr::arrange(.data$samples)
-
-  suitability_list <- filter(plate, .data$TYPE == "Suitability")
-
-
-
-  no_qc <- ifelse(nrow(qc_list) == 0, TRUE, FALSE) #
-  no_analyte <- ifelse(nrow(analyte_list) == 0, TRUE, FALSE)
-
-
-  if (!no_qc) {
-    stopifnot(nrow(qc_list) %% 4 == 0)
-    qc_replicates <-
-      qc_list |>
-      dplyr::count(.data$value, .by = "value") |>
-      dplyr::pull(n) |>
-      unique()
-    stopifnot(length(qc_replicates) == 1)
-  }
-
-  ## 1. xplore mode
-  if(explore_mode){
-    xplore_df <- df[FALSE, ] # empty df
-    # add random sample from each group
-    if(nrow(std_list) > 0){
-      std_xplore <- std_list |>
-        dplyr::group_by(.data$std_rep) |>
-        dplyr::sample_n(1) |>
-        dplyr::ungroup()
-        xplore_df <-  rbind(xplore_df, std_xplore)
-    }
-
-    if(nrow(qc_list) > 0){
-      qc_xplore <- qc_list |>
-        dplyr::group_by(.data$std_rep) |>
-        dplyr::sample_n(1) |>
-        dplyr::ungroup()
-        xplore_df <-  rbind(xplore_df, qc_xplore)
-    }
-
-    if(nrow(analyte_list) > 0){
-      analyte_xplore <- analyte_list |>
-        dplyr::sample_n(1)
-        xplore_df <-  rbind(xplore_df, analyte_xplore)
-    }
-
-    if(nrow(blank_list) > 0){
-      blank_xplore <- blank_list |>
-        dplyr::sample_n(1)
-      xplore_df <-  rbind(xplore_df, blank_xplore)
-    }
-
-    xplore_df <- xplore_df |>
-      mutate(value = paste0(.data$value, "_explore"))
-
-    df <- bind_rows(df, xplore_df)
-  }
-
-  for(i in 1:2){
-  # double blank
-    df <- add_row(df, double_blanks)
-    # IS blank
-    df <- add_row(df, IS_blanks)
-  }
-
-  # add suitability
-  if (system_suitability > 0) {
-    stopifnot("There is no suitability well in the plate. Please add it using add_suitability()" = nrow(suitability_list) >= 1)
-    # n_blanks <- nrow(blank_list)
-    # stopifnot(n_blanks >=2) # FIXME
-
-    # df <- add_row(df,
-    #     mutate(blank_list, value = paste0(value, "-suitability"))[rep(1, system_suitability),]
-    #  )
-    # df <- add_row(df, blank_list[-1,])
-
-    for (i in seq(system_suitability)) {
-      df <- add_row(df, suitability_list)
-    }
-  }
-
-  #add blanks
-  df <- add_row(df, blank_list)
-
-  # add standards
-  for (i in seq(repeat_std)) {
-    df <- bind_rows(df, std_list)
-
-    if (blank_after_top_conc) {
-      df <- bind_rows(df, blank_list)
-    }
-  }
-
-  if (no_qc & !no_analyte) {
-    # inject analyte if no QCs
-    for (i in seq(repeat_analyte)) {
-      if (!is.null(blank_every_n)) {
-        analyte_list <- .add_every_n(analyte_list, blank_list, blank_every_n)
-      }
-
-      df <- bind_rows(df, analyte_list)
-
-      if (blank_after_top_conc) {
-        df <- bind_rows(df, blank_list)
-      }
-    }
-  }
-
-  if (!no_qc) {
-    # TODO repeat analytes and qcs  with n_analyte and n_qc
-    if (!no_analyte) {
-      # divide analyte list by number of QCs
-      fac <- round(nrow(analyte_list) / qc_replicates)
-      fac <-
-        sort(rep(
-          1:qc_replicates,
-          by = fac,
-          length.out = nrow(analyte_list)
-        ))
-      analyte_list <- analyte_list |> split(fac)
-    }
-
-    group <- rep(1:qc_replicates, length.out = nrow(qc_list))
-    qc_list <- qc_list |> split(group)
-
-    # add qc
-    for (i in seq_along(qc_list)) {
-      df <- bind_rows(df, qc_list[[i]])
-      if (!no_analyte) {
-        df <- bind_rows(df, analyte_list[[i]])
-      }
-
-      if (blank_after_top_conc) {
-        df <- bind_rows(df, blank_list)
-      }
-    }
-
-
-
-    if (!blank_after_top_conc & blank_at_end) {
-      df <- bind_rows(df, blank_list)
-    }
-  }
-
-
-
-  if(!is.null(conc_df)){
-    # add conc_df to plate
-    conc_df <- t(conc_df)
-    cmpd_vec <- conc_df[1,]
-    cmpd_names <- paste0("COMPOUND_", LETTERS[seq_along(cmpd_vec)])
-    conc_vec <- conc_df[2,]
-    conc_names <- paste0("CONC_", LETTERS[seq_along(conc_vec)])
-    conc_df = data.frame(matrix(nrow = 1, ncol = length(cmpd_vec)*2))
-    colnames(conc_df) <- c(cmpd_names, conc_names)
-    conc_df[1:length(cmpd_vec)] <- cmpd_vec
-    conc_df[(length(cmpd_vec)+1):(length(cmpd_vec)*2)] <- conc_vec
-
-    # min_conc <- min(as.numeric(df$conc))
-    df <- df |> dplyr::bind_cols(conc_df) |>  # bind conc_df
-          dplyr::mutate(dplyr::across(starts_with("CONC_"),
-                                \(x) (as.numeric(x) * as.numeric(.data$conc)))) # multiply conc_df with conc and divide by min conc
-
-  } else{
-    df <- dplyr::mutate(df, CONC_A = .data$conc)
-
-  }
-
-  # create filename
-  ## Date
-  df <- df |>
-    dplyr::mutate(
-      Index = dplyr::row_number(),
-      FILE_NAME = paste0(prefix, "_", .data$value, "_", suffix),
-      INJ_VOL = inject_vol,
-      # CONC_A = conc,
-      FILE_TEXT = descr,
-      INLET_METHOD = method
-    )
-
-
-  # TODO
-  # if(!is.null(conc_df)){
-  #   names <- names(conc_df)
-  #   for(i in seq_along(names)){
-  #     df <- df |> mutate( {{LETTERS[i]}} = names[i])
-  #   }
-  #   df |> mutate("Compound_A" = names[1], "Compound_B" = names[2])
-  # }
-
-  x <- .injecList(df, current_plate_id)
-  print(x)
-}
-
 
 #' Interject dataframe every Nth position
 #'
@@ -457,12 +98,9 @@ combine_injec_lists <-
     print(x)
   }
 
-#' Export injection sequence to vendor specific format
+#' Write injection sequence to database
 #'
 #' @param injec_seq InjecListObj object
-#'
-#' @import checkmate
-#' @import dplyr
 #'
 #' @export
 #' @returns dataframe
@@ -508,14 +146,15 @@ write_injec_seq <- function(injec_seq){
     duckdb::dbDisconnect(db, shutdown = TRUE)
   }, error = function(e) {
     duckdb::dbDisconnect(db, shutdown = TRUE)
-    message("Previous samples with same name deteted. Change prefix or suffix to avoid duplicates.")
+    message("Error writing to database: ", e$message)
+    # message("Previous samples with same name deteted. Change prefix or suffix to avoid duplicates.")
   })
 
   sample_list
 }
 
 
-#' Download sample list from database to local spreadsheet
+#' Download sample list from database to local spreadsheet with vendor specific format
 #'@param sample_list dataframe of sample list either from db or from write_injec_seq
 #'@param vendor currently only 'masslynx', 'masshunter' and 'analyst' are supported
 #'
@@ -534,8 +173,11 @@ download_sample_list <- function(sample_list, vendor){
         matches("FILE_TEXT"),
         matches("TYPE"), matches("INJ_VOL"),
         starts_with("CONC"), starts_with("COMPOUND")) |>
-      dplyr::mutate(Index = dplyr::row_number())
-
+      dplyr::mutate(Index = dplyr::row_number()) |> 
+      dplyr::mutate(TYPE = dplyr::case_when(
+        .data$TYPE == "DQC" ~ "QC",
+        TRUE ~ .data$TYPE
+      )) 
   } else if(vendor == "masshunter"){
 
     sample_list <- sample_list |>
@@ -592,7 +234,7 @@ print.InjecListObj <- function(x, ...) {
   cat("Check if total volume is OK. Volume will depend on injection and filtration modes")
   sprintf("Total number of injections %s", nrow(x$injec_list))
   x$injec_list |>
-    summarize(total_volume = sum(.data$INJ_VOL), .by = "SAMPLE_LOCATION") |>
+    summarise(total_volume = sum(.data$INJ_VOL), .by = "SAMPLE_LOCATION") |>
     arrange(desc(.data$total_volume)) |> print()
 
   return(invisible(x))

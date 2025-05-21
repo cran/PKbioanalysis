@@ -2,12 +2,39 @@ method: new LC-MS/MS method
 gradient: 0-1 min 5% B, 1-3 min 5-95% B, 3-5 min 95% B, 5-5.1 min 95-5% B, 5.1-7 min 5% B
 description: quantify 10 compounds
 compounds:
-  - Dopamine 
-  - Norepinephrine
-  - Epinephrine
-  - 3-Methoxytyramine
-  - 3,4-Dihydroxyphenylacetic acid
-  - 3,4-Dihydroxyphenylalanine
-  - 3-Methoxy-4-hydroxyphenylglycol
-  - Homovanillic acid
-  - Vanillylmandelic acid
+  - cmpd: Dopamine 
+    q1: 154.1
+    q3: 137.1
+    qualifier: True
+  - cmpd: Norepinephrine
+    q1: 170.1
+    q3: 152.1
+    qualifier: False
+  - cmpd: Epinephrine
+    q1: 184.1
+    q3: 166.1
+    qualifier: False
+  - cmpd: 3-Methoxytyramine
+    q1: 168.1
+    q3: 150.1
+    qualifier: False
+  - cmpd: 3,4-Dihydroxyphenylacetic acid
+    q1: 182.1
+    q3: 165.1
+    qualifier: False
+  - cmpd: 3,4-Dihydroxyphenylalanine
+    q1: 197.1
+    q3: 180.1
+    qualifier: False
+  - cmpd: 3-Methoxy-4-hydroxyphenylglycol
+    q1: 214.1
+    q3: 197.1
+    qualifier: False
+  - cmpd: Homovanillic acid
+    q1: 214.1
+    q3: 197.1
+    qualifier: False
+  - cmpd: Vanillylmandelic acid
+    q1: 214.1
+    q3: 197.1
+    qualifier: False

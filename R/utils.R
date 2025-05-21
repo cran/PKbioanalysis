@@ -9,22 +9,13 @@
 }
 
 
-#' Load methods database
-#' @noRd
-.get_methodsdb <- function(){
-    .check_sample_db()
-    db <- .connect_to_db()
-    methods <- DBI::dbGetQuery(db, "SELECT * FROM methodstab")
-    duckdb::dbDisconnect(db, shutdown = TRUE)
-    methods
-}
 
 #' Delete samples database
 #' @noRd
 .reset_samples_db <- function() {
   db_path <- PKbioanalysis_env$data_dir |>
     file.path("samples.db")
-    
+
   if(file.exists(db_path)) {
     file.rename(db_path, paste0(db_path, "_old"))
   }
@@ -75,6 +66,7 @@
     samples TEXT,
     type TEXT,
     std_rep INTEGER,
+    e_rep INTEGER,
     tray TEXT,
     inj_vol REAL,
 
@@ -116,6 +108,8 @@
     conc TEXT,
     time TEXT,
     factor TEXT,
+    dil TEXT,
+    dosage TEXT,
     UNIQUE(file_name)
   );
 ")
@@ -149,15 +143,60 @@ CREATE TABLE IF NOT EXISTS chroms (
   UNIQUE(chrom_id)
 );")
 
+DBI::dbExecute(db, " 
+  CREATE TABLE IF NOT EXISTS chrom_files_metadata (
+    chrom_id INTEGER PRIMARY KEY,
+    file_name TEXT NOT NULL,
+    type TEXT,
+    std_rep INTEGER,
+    sample_location TEXT,
+    inj_vol REAL,
+    date TEXT,
+
+    conc TEXT,
+    time TEXT,
+    factor TEXT,
+    dosage TEXT,
+
+    UNIQUE(file_name)
+  )
+")
+
 
 # gradient methods table
+## method_id: this will auto increment and unique number
+## method_gradient: gradient of the method
+## q1: q1 value
+## q3: q3 value
+## inlet_method: inlet method
+## transition_label: q1 > q3
+## transition_id: T1, T2, T3, etc
+## last unique assertations might be important to avoid repeating identical method entries
+
+DBI::dbExecute(db, "
+CREATE TABLE IF NOT EXISTS transtab (
+  method_id INTEGER,
+  method_gradient TEXT,
+  q1 REAL,
+  q3 REAL,
+  inlet_method TEXT,
+  transition_label TEXT,
+  transition_id TEXT,
+  UNIQUE(method_id, transition_id)
+);" )
+
+# methods tab
+## method_descr: description of the method
 DBI::dbExecute(db, "
 CREATE TABLE IF NOT EXISTS methodstab (
   method_id INTEGER PRIMARY KEY,
-  method TEXT,
+  method TEXT NOT NULL,
   method_descr TEXT,
-  UNIQUE(method_id, method)
+  method_gradient TEXT,
+  UNIQUE(method_id),
+  UNIQUE(method)
 );" )
+
 
 DBI::dbExecute(db, "
   CREATE TABLE IF NOT EXISTS peakstab (
@@ -178,30 +217,35 @@ DBI::dbExecute(db, "
 
 ")
 
-DBI::dbExecute(db, "
-  CREATE TABLE IF NOT EXISTS transtab (
-    transition_id INTEGER PRIMARY KEY,
-    transition_label TEXT,
-    q1 REAL,
-    q3 REAL,
-    inlet_method TEXT,
-    UNIQUE(transition_id),
-    UNIQUE(q1, q3, inlet_method)
-  );
-")
 
+# non on the three first columns are unique.
+# the unqiuness is based on all method_id trans_id compound_id
+# IS is a property of compound. Call get_IS_name to get the IS for a compound
 DBI::dbExecute(db, "
   CREATE TABLE IF NOT EXISTS compoundstab (
-    compound_id TEXT,
+    method_id INTEGER NOT NULL,
+    transition_id TEXT NOT NULL,
+    compound_id TEXT NOT NULL,
+    qualifier BOOLEAN NOT NULL,
     compound TEXT,
-    method_id INTEGER,
-    transition_id INTEGER,
-    expected_rt_start REAL,
-    expected_rt_end REAL,
-    expected_rt REAL
+    expected_peak_start REAL,
+    expected_peak_end REAL,
+    expected_rt REAL,
+    IS_id TEXT,
+    UNIQUE(method_id, transition_id, compound_id)
   );
 
 ")
 
 duckdb::dbDisconnect(db, shutdown = TRUE)
+}
+
+
+
+rename_db_col <- function(old, new, tablename){
+  db_path <- PKbioanalysis_env$data_dir |>
+    file.path("samples.db")
+  db <- duckdb::dbConnect(duckdb::duckdb(), dbdir = db_path)
+  DBI::dbExecute(db, paste0("ALTER TABLE ", tablename, " RENAME COLUMN ", old, " TO ", new))
+  duckdb::dbDisconnect(db, shutdown = TRUE)
 }

@@ -9,7 +9,9 @@
   color = "conc",
   Instrument = "",
   caption = "",
-  label_size = 15,
+  label_size = 1,
+  transform_dil = FALSE,
+  watermark = "auto",
   path = NULL,
   ...
 )
@@ -17,13 +19,17 @@
 \arguments{
 \item{x}{PlateObj}
 
-\item{color}{character. Coloring variable. Either "conc", "time", "factor", "samples", "TYPE"}
+\item{color}{character. Coloring variable. Either "conc", "time", "factor", "samples", "dosage"}
 
 \item{Instrument}{A string placed at subtitle}
 
 \item{caption}{A string place at plate caption}
 
 \item{label_size}{numeric. Size of the label. Default is 15}
+
+\item{transform_dil}{logical. If TRUE, transform the dilution factor to the label}
+
+\item{watermark}{character. If "auto", a watermark is added to the plot. If "none", no watermark is added. Default is "auto"}
 
 \item{path}{Default is NULL, if not null, must be a path to save plate image}
 
@@ -36,7 +42,7 @@ ggplot object
 Plotting 96 well plate
 }
 \examples{
-plate <- generate_96("new_plate", c("C", "D", "E"), 11) |>
+plate <- generate_96("new_plate", "C", 11) |>
   add_blank(IS = FALSE, analyte = FALSE) |>
   add_blank(IS = TRUE, analyte = FALSE) |>
   add_samples(c(

@@ -2,7 +2,7 @@
 % Please edit documentation in R/injec_list.R
 \name{download_sample_list}
 \alias{download_sample_list}
-\title{Download sample list from database to local spreadsheet}
+\title{Download sample list from database to local spreadsheet with vendor specific format}
 \usage{
 download_sample_list(sample_list, vendor)
 }
@@ -15,7 +15,7 @@ download_sample_list(sample_list, vendor)
 dataframe
 }
 \description{
-Download sample list from database to local spreadsheet
+Download sample list from database to local spreadsheet with vendor specific format
 }
 \details{
 For all current vendors, the exported format will be in csv format, compatible with the respective software.
