@@ -1,0 +1,255 @@
+```{r}
+z <- rlang::expr(y <- x * 10)
+z
+
+x <- 4
+eval(z)
+y
+```
+
+```{r}
+library(rlang)
+library(lobstr)
+library(ellmer)
+library(tidyprompt)
+```
+
+```{r}
+lobstr::ast(f(x, "y", 1))
+
+lobstr::ast(f(g(h())))
+
+lobstr::ast(1 + 2 + 3)
+
+lobstr::ast((x + y) * z)
+lobstr::ast(f(g(h(i(1, 2, 3)))))
+lobstr::ast(function(x = 1, y = 2, z = 3) {})
+
+lobstr::ast(a == 1)
+lobstr::ast(a = 1)
+lobstr::ast(f((1)))
+lobstr::ast(`(`(1 + 1))
+```
+
+
+```{r}
+cement <- function(...) {
+  args <- ensyms(...)
+  paste(purrr::map(args, as_string), collapse = " ")
+}
+cement(1, 2, 3)
+name <- ensyms("Omar")
+!!name
+```
+
+
+```{r}
+
+library(rlang)
+library(purrr)
+
+html <- function(x) structure(x, class = "advr_html")
+
+print.advr_html <- function(x, ...) {
+  out <- paste0("<HTML> ", x)
+  cat(paste(strwrap(out), collapse = "\n"), "\n", sep = "")
+}
+
+escape <- function(x) UseMethod("escape")
+
+escape.character <- function(x) {
+  x <- gsub("&", "&amp;", x)
+  x <- gsub("<", "&lt;", x)
+  x <- gsub(">", "&gt;", x)
+
+  html(x)
+}
+
+escape.advr_html <- function(x) x
+```
+
+```{r}
+library(data.tree)
+
+acme <- Node$new("Acme Inc.")
+  accounting <- acme$AddChild("Accounting")
+    software <- accounting$AddChild("New Software")
+    standards <- accounting$AddChild("New Accounting Standards")
+  research <- acme$AddChild("Research")
+    newProductLine <- research$AddChild("New Product Line")
+    newLabs <- research$AddChild("New Labs")
+  it <- acme$AddChild("IT")
+    outsource <- it$AddChild("Outsource")
+    agile <- it$AddChild("Go agile")
+    goToR <- it$AddChild("Switch to R")
+
+group1 <- Node$new("start")
+    blank <- group1$AddChild("group1")
+    cs <- blank$AddChild("blank")
+    cs <- blank$AddChild("CS")
+    cs <- blank$AddChild("CS")
+    qc <- group1$AddChild("QC")
+    qc <- group1$AddChild("QC")
+
+group2 <- group1$AddChild("Group 2")
+    sample1 <- group2$AddChild("Sample 1")
+    sample2 <- group2$AddChild("Sample 2")
+    sample3 <- group2$AddChild("Sample 3")
+    sample4 <- group2$AddChild("Sample 4")
+
+
+print(group1, "name", "level", "pathString", "isLeaf", "isRoot", "isBranch", "isEmpty")
+print(group1)
+
+```
+
+```{r}
+library(treemap)
+library(ellmer)
+```
+```{r}
+# Ollama running on local PC
+ollama <- llm_provider_ollama(
+  parameters = list(model = "llama3.1:8b"),
+)
+
+# OpenAI API
+# key <- "sk-kAXjeNzpfojZnQUrSH0F4A"
+key <- "sk-dh_FaP8Uv12WpP3qnEBWig"
+model <- "gpt-oss-20b"
+# model <- "gpt-oss-120b"
+
+chat <- chat_openai(
+            base_url = "https://api.ai.it.ufl.edu", 
+            model = model,
+            api_key = key)
+
+chat$chat("what is your name")
+
+groq <- llm_provider_openai(
+  parameters = list(
+    model = model,
+    url =  "https://api.ai.it.ufl.edu", api_key = key), 
+    # url = "https://api.ai.it.ufl.edu",
+    api_key = key
+)
+
+groq <- llm_provider_ellmer(chat)
+
+```
+
+```{r}
+
+"You are academic bioanalytical researcher reporting your results" |>
+  add_text("Give less than 200 words summary on the quality of linearity and about many CS and QC passed according to ICH M10") |>
+  answer_by_chain_of_thought() |>
+  send_prompt(groq)
+
+  # answer_as_integer(add_instruction_to_prompt = FALSE) |>
+  add_text(vector_list_to_string(x@linearity$MITRAGYNINE$results)) |>
+  add_text(df_to_string(x@linearity$MITRAGYNINE$linearitytab |> filter(type %in% c("Standard", "QC")))) |>
+  add_text(vector_list_to_string(x@linearity$MITRAGYNINE$parameters)) |>
+  send_prompt(groq)
+
+res <- linearity_ai(x, "MITRAGYNINE")
+
+res$response
+
+``` 
+
+```{r}
+y <- suitability_ai(x)
+
+```
+
+
+
+```{r}
+library(shiny)
+library(shinychat)
+library(btw)
+
+
+
+ui <- bslib::page_fillable(
+  chat_ui(
+    id = "chat",
+    messages = "**Hello!** How can I help you today?"
+  ),
+  fillable_mobile = TRUE
+)
+
+server <- function(input, output, session) {
+
+  chat <-
+    ellmer::chat_groq(
+      api_key = key,
+      model = "openai/gpt-oss-20b",
+      system_prompt = "You are academic bioanalytical researcher reporting your results"
+    )
+      
+
+  observeEvent(input$chat_user_input, {
+    stream <- chat$stream_async(input$chat_user_input)
+    chat_append("chat", stream)
+  })
+}
+
+shinyApp(ui, server)
+
+PKbioanalysis_env$api_key
+
+
+```
+
+
+```{r}
+library(shiny)
+library(bslib)
+library(querychat)
+
+# 1. Create a data source for querychat
+df <- x@suitability$results
+mtcars_source <- querychat_data_source(df)
+
+# 2. Configure querychat with the data source
+querychat_config <- querychat_init(mtcars_source, 
+  greeting = "Ask me about the suitability results!",
+  client = ellmer::chat_groq(
+    model = "llama-3.1-8b-instant",
+    api_key = key
+  ))
+
+ui <- page_sidebar(
+  # 3. Use querychat_sidebar(id) in a bslib::page_sidebar.
+  #    Alternatively, use querychat_ui(id) elsewhere if you don't want your
+  #    chat interface to live in a sidebar.
+  sidebar = querychat_sidebar("chat"),
+  DT::DTOutput("dt")
+)
+
+server <- function(input, output, session) {
+
+  # 4. Create a querychat object using the config from step 2.
+  querychat <- querychat_server("chat", querychat_config)
+
+  output$dt <- DT::renderDT({
+    # 5. Use the filtered/sorted data frame anywhere you wish, via the
+    #    querychat$df() reactive.
+    DT::datatable(querychat$df())
+  })
+}
+
+shinyApp(ui, server)
+```
+
+```{r}
+x <- integrate_ai(main, transition_id = 1, sample_id = 4, peak_start = 0.5, peak_end = 0.7) 
+```
+
+```{r}
+chat <- chatfunc()
+chat$chat("what is your name")
+
+PKbioanalysis_env$model
+```

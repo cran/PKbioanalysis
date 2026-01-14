@@ -4,14 +4,16 @@
 \alias{add_cs_curve}
 \title{Add calibration curve to the plate}
 \usage{
-add_cs_curve(plate, plate_std, rep = 1)
+add_cs_curve(plate, plate_std, rep = 1, group = NA)
 }
 \arguments{
 \item{plate}{PlateObj}
 
 \item{plate_std}{character}
 
-\item{rep}{numeric. Number of replicates. Default is 1.}
+\item{rep}{numeric. Number of technical replicates. Default is 1.}
+
+\item{group}{A string for bioanalytical group.}
 }
 \value{
 PlateObj

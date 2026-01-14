@@ -13,7 +13,6 @@ Automate pharmacokinetic/pharmacodynamic bioanalytical procedures based on best 
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/OmarAshkar/PKbioanalysis}
   \item \url{https://omarashkar.github.io/PKbioanalysis/}
   \item Report bugs at \url{https://github.com/OmarAshkar/PKbioanalysis/issues}
 }

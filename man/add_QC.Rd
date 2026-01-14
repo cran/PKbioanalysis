@@ -12,7 +12,8 @@ add_QC(
   extra = NULL,
   n_qc = 3,
   qc_serial = TRUE,
-  reg = TRUE
+  reg = TRUE,
+  group = NA
 )
 }
 \arguments{
@@ -24,13 +25,15 @@ add_QC(
 
 \item{hqc_conc}{high quality control concentration}
 
-\item{extra}{numeric vector of extra QC concentrations. Default is NULL.}
+\item{extra}{numeric vector of extra QC concentrations.}
 
 \item{n_qc}{number of QC sets. Default is 3}
 
 \item{qc_serial}{logical. If TRUE, QCs are placed serially}
 
 \item{reg}{logical. Indicates if restrictions should not be applied to the QC samples. Default is TRUE}
+
+\item{group}{A string for bioanalytical group.}
 }
 \value{
 PlateObj

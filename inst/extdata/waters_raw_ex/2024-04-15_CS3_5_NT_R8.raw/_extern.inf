@@ -1,0 +1,115 @@
+
+Parameters for C:\MassLynx\Projects\CSF_MTG.PRO\ACQUDB\NT.EXP
+
+Data Processing:
+SIR / MRM Chromatogram Spike Removal	ON
+SIR / MRM Smoothing		OFF
+Smoothing window size (scans)	3
+Number of smooths		2
+
+
+Prescan Statistics:
+Initial Average Intensity	3727.8952
+Initial Average Std Dev		2.1268
+Bunch Zero Level		0.0000
+Bunch Std Dev			0.0000
+Bunch Threshold			0.0000
+
+
+Method Events:
+Initial Stop Flow:	No Change
+Initial Switch 2:	No Change
+Initial Switch 3:	No Change
+Initial Switch 4:	No Change
+Initial Infusion:	No Change
+Initial Flow State:	LC
+Initial Flow Rate:	5
+Initial Reservoir:	No Action
+API Probe Delay Temp:	20
+Initial Refill:		No Action
+Timed Events Enabled
+Event	Time(Sec)	Name		Action
+1	0.00		Flow State	Waste
+2	30.00		Flow State	LC
+3	240.00		Flow State	Waste
+
+
+Source Information:
+Type - ESI
+Status - Option Connector Disconnected
+
+Ion Count Threshold:	350.0000
+
+Instrument Parameters - Function 1:
+Parameter File - C:\MassLynx\Projects\CSF_MTG.PRO\ACQUDB\Default.ipr
+Polarity	ES+
+Calibration	Static 2
+Capillary (kV)	2.50
+Cone (V)	30.00
+Source Temperature (°C)	150
+Desolvation Temperature (°C)	450
+Cone Gas Flow (L/Hr)	50
+Desolvation Gas Flow (L/Hr)	900
+Collision Gas Flow (mL/Min)	ON
+LM 1 Resolution	4.30
+HM 1 Resolution	14.80
+Ion Energy 1	-0.60
+MS Mode Collision Energy	3.00
+MS Mode Entrance (Gas On)	1.00
+MS Mode Exit (Gas On)	1.00
+MS Mode Entrance (Gas Off)	1.00
+MS Mode Exit (Gas Off)	1.00
+MSMS Mode Collision Energy	20.00
+MSMS Mode Entrance (Gas On)	1.00
+MSMS Mode Exit (Gas On)	1.00
+MSMS Mode Entrance (Gas Off)	1.00
+MSMS Mode Exit (Gas Off	1.00
+LM 2 Resolution	10.60
+HM 2 Resolution	14.10
+Ion Energy 2	0.30
+Gas On MS Mode Entrance	1.00
+Gas On MS Mode Exit	1.00
+Gas On MSMS Mode Entrance	1.00
+Gas On MSMS Mode Exit	1.00
+Gas Off MS Mode Entrance	1.00
+Gas Off MS Mode Exit	1.00
+Gas Off MSMS Mode Entrance	1.00
+Gas Off MSMS Mode Exit	1.00
+Gain	1.00
+Active Reservoir	A
+Cone Voltage Ramp :Disabled
+Probe Temperature Ramp :Disabled
+
+
+Engineers Settings:
+MS1 Low Mass Position      	519
+MS1 High Mass Position     	225
+MS1 Low Mass Resolution    	511
+MS1 High Mass Resolution   	1950
+MS1 Resolution Linearity   	888
+MS1 High Mass DC Balance   	-0.35
+MS1 DC Polarity            	Positive
+MS2 Low Mass Position      	520
+MS2 High Mass Position     	197
+MS2 Low Mass Resolution    	512
+MS2 High Mass Resolution   	1343
+MS2 Resolution Linearity   	852
+MS2 High Mass DC Balance   	-0.45
+MS2 DC Polarity            	Negative
+HM RF Lens Correction + 	0.00
+HM RF Lens Correction - 	0.00
+
+
+   Instrument Readbacks   
+Capillary (kV)	2.49
+Cone (V)	13.92
+Extractor (V)	0.00
+Source Temperature (°C)	149
+Desolvation Temperature (°C)	448
+Cone Gas Flow (L/Hr)	50
+Desolvation Gas Flow (L/Hr)	895
+Collision Gas Flow (mL/Min)	ON
+
+
+Inter-scan delays:
+Automatic Mode - See Help Files for details

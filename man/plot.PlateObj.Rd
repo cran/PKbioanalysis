@@ -12,6 +12,7 @@
   label_size = 1,
   transform_dil = FALSE,
   watermark = "auto",
+  layoutOverlay = FALSE,
   path = NULL,
   ...
 )
@@ -19,7 +20,7 @@
 \arguments{
 \item{x}{PlateObj}
 
-\item{color}{character. Coloring variable. Either "conc", "time", "factor", "samples", "dosage"}
+\item{color}{character. Coloring variable. Choices: "conc", "group", "dil", "study", "time", "factor", "samples", "arm", "sex", "dose", "route", "matrix". Default is "conc"}
 
 \item{Instrument}{A string placed at subtitle}
 
@@ -31,7 +32,9 @@
 
 \item{watermark}{character. If "auto", a watermark is added to the plot. If "none", no watermark is added. Default is "auto"}
 
-\item{path}{Default is NULL, if not null, must be a path to save plate image}
+\item{layoutOverlay}{logical. If TRUE, overlay the plot layout. Default is FALSE}
+
+\item{path}{If not null, must be a path to save plate image}
 
 \item{...}{additional arguments passed to ggplot2::ggsave}
 }

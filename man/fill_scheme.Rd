@@ -31,6 +31,6 @@ PlateObj
 }
 \description{
 This function sets the filling scheme of the plate. The filling scheme is used to determine the order in which the samples are filled in the plate.
-The default filling scheme is horizontal, which means that the samples are filled from left to right and top to bottom. 
+The default filling scheme is horizontal, which means that the samples are filled from left to right and top to bottom.
 The vertical filling scheme means that the samples are filled from top to bottom and left to right.
 }

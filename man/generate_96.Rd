@@ -2,8 +2,7 @@
 % Please edit documentation in R/plate.R
 \name{generate_96}
 \alias{generate_96}
-\title{Generate 96 Plate
-Generate a typical 96 well plate. User need to specify the empty rows which a going to be used across the experiment.}
+\title{Generate 96 well plate}
 \usage{
 generate_96(descr = "", start_row = "A", start_col = 1)
 }
@@ -12,14 +11,15 @@ generate_96(descr = "", start_row = "A", start_col = 1)
 
 \item{start_row}{A letter corresponding to empty rows in a 96 well plate. Default is A.}
 
-\item{start_col}{A number indicating a column number to start with, given the start row. Default is 1.}
+\item{start_col}{A number indicating a column number to start with, given the start row. Default is 1.
+
+Generate a typical 96 well plate. User need to specify the empty rows which a going to be used across the experiment.}
 }
 \value{
 PlateObj
 }
 \description{
-Generate 96 Plate
-Generate a typical 96 well plate. User need to specify the empty rows which a going to be used across the experiment.
+Generate 96 well plate
 }
 \examples{
 plate <- generate_96()

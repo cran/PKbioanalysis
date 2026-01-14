@@ -4,7 +4,7 @@
 \alias{add_suitability}
 \title{Add suitability sample to the plate}
 \usage{
-add_suitability(plate, conc, label = "suitability")
+add_suitability(plate, conc, label = "suitability", group = NA)
 }
 \arguments{
 \item{plate}{PlateObj object.}
@@ -12,6 +12,8 @@ add_suitability(plate, conc, label = "suitability")
 \item{conc}{numeric. Concentration of the suitability well.}
 
 \item{label}{character. Label for the suitability well. Default is "suitability".}
+
+\item{group}{A string for bioanalytical group.}
 }
 \value{
 PlateObj

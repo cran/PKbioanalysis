@@ -2,50 +2,38 @@
 % Please edit documentation in R/plate.R
 \name{add_samples}
 \alias{add_samples}
-\title{Add unknown samples to a plate}
+\title{Add samples to plate with pharmacokinetic attributes}
 \usage{
-add_samples(
-  plate,
-  samples,
-  time = NA,
-  conc = NA,
-  dil = NA,
-  factor = NA,
-  dosage = NA,
-  prefix = "S",
-  vtime = FALSE
-)
+add_samples(plate, samples, prefix = NA, dil = NA, group = NA, rep = 1)
 }
 \arguments{
 \item{plate}{PlateObj}
 
 \item{samples}{A vector representing samples names. Must be unique.}
 
-\item{time}{A vector representing time points. If vtime = FALSE, time will propagate to all samples.}
+\item{prefix}{A prefix to be added before samples names. Default is "Sub".}
 
-\item{conc}{A vector representing concentration. Must be same length as samples.}
+\item{dil}{A vector representing samples' dilution factor. Must be same length as samples.}
 
-\item{dil}{A vector representing dilution factor. Must be same length as samples.}
+\item{group}{A vector representing samples' bioanalytical group. Must be same length as samples.}
 
-\item{factor}{A vector representing factor. Must be same length as samples.}
-
-\item{dosage}{A vector representing dosage. Must be same length as samples.}
-
-\item{prefix}{A prefix to be added before samples names. Default is "S"}
-
-\item{vtime}{A logical. If TRUE, time is a vector of sample length as samples. Default is FALSE.}
+\item{rep}{Number of technical replicates for each combination. Default is 1.}
 }
 \value{
 PlateObj
 }
 \description{
-Add unknown samples to a plate
+Add samples to plate with pharmacokinetic attributes
 }
 \details{
 final name will be of form. Prefix-SampleName-Time-Concentration-Factor
-samples must be a unique vector and did not exist in the plate before. 
+samples must be a unique vector and did not exist in the plate before.
 Time is either a vector or a single value. If it is a vector, it will be repeated for each sample.
-Conc, dil, factor and dosage are either a vector or a single value. If it is a vector, it must be the corrosponding length of samples.
+Conc, dil, factor and dose are either a vector or a single value. If it is a vector, it must be the corrosponding length of samples.
+
+Allowed routes are "IV", "IM", "IP", "SC", "PO", "INH" which are short for Intravenous, Intramuscular, Intraperitoneal, Subcutaneous, Per Os (oral), Inhalation.
+
+Factor is an arbitrary factor used in the design like food vs fasted, healthy vs diseased, positive genotype ... etc.
 }
 \examples{
 plate <- generate_96() |>

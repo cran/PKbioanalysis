@@ -4,7 +4,7 @@
 \alias{add_DQC}
 \title{Add dilution quality control (DQC) to the plate}
 \usage{
-add_DQC(plate, conc, fac, rep = 5)
+add_DQC(plate, conc, fac, rep = 5, group = NA)
 }
 \arguments{
 \item{plate}{PlateObj object}
@@ -13,7 +13,9 @@ add_DQC(plate, conc, fac, rep = 5)
 
 \item{fac}{numeric. Factor of the DQC well.}
 
-\item{rep}{numeric. Number of replicates. Default is 5.
+\item{rep}{numeric. Number of replicates. Default is 5.}
+
+\item{group}{A string for bioanalytical group.
 
 The current implementation does not check ULOQ or LLOQ boundaries.}
 }

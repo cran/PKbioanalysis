@@ -4,10 +4,14 @@
 \alias{add_DB}
 \title{Add double blank (DB) to a plate}
 \usage{
-add_DB(plate)
+add_DB(plate, analytical = FALSE, group = NA)
 }
 \arguments{
 \item{plate}{PlateObj object}
+
+\item{analytical}{logical. If TRUE, the blank is bioanalytical, if FALSE it is analytical.}
+
+\item{group}{A string for bioanalytical group.}
 }
 \value{
 PlateObj

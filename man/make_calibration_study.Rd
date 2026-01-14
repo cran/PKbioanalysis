@@ -14,7 +14,8 @@ make_calibration_study(
   qc_serial = FALSE,
   n_CS0IS0 = 1,
   n_CS0IS1 = 2,
-  n_CS1IS0 = 1
+  n_CS1IS0 = 1,
+  group = NA
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ make_calibration_study(
 \item{n_CS0IS1}{number of CS0IS1 blanks}
 
 \item{n_CS1IS0}{number of CS1IS0 blanks}
+
+\item{group}{A string for bioanalytical group.}
 }
 \value{
 PlateObj

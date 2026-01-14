@@ -1,0 +1,146 @@
+
+ACE Experimental Record
+
+
+Inlet Method File: c:\masslynx\projects\csf_mtg.pro\acqudb\nt
+
+---------------------   Run method parameters   ----------------
+
+-- PUMP --
+
+Waters Acquity SDS
+ Run Time: 3.00 min
+ Comment:  
+ Solvent Selection A: A1 
+ Solvent Selection B: B2 
+ Low Pressure Limit: 0.000 psi
+ High Pressure Limit: 15000.000 psi
+ Solvent Name A: 0.1% FA in Water 
+ Solvent Name B: Methanol 
+ Switch 1: No Change 
+ Switch 2: No Change 
+ Switch 3: No Change 
+ Seal Wash: 4.5 min
+ Chart Out 1: System Pressure 
+ Chart Out 2: %B 
+ System Pressure Data Channel: No 
+ Flow Rate Data Channel: No 
+ %A Data Channel: No 
+ %B Data Channel: No 
+ Primary A Pressure Data Channel: No 
+ Accumulator A Pressure Data Channel: No 
+ Primary B Pressure Data Channel: No 
+ Accumulator B Pressure Data Channel: No 
+ Degasser Pressure Data Channel: No 
+ [Gradient Table]
+  Time(min) Flow Rate(mL/min) %A %B Curve 
+ 1. Initial 0.350 95.0 5.0 Initial 
+ 2. 0.80 0.350 95.0 5.0 6 
+ 3. 1.50 0.350 75.0 25.0 6 
+ 4. 2.50 0.350 75.0 25.0 6 
+ 5. 2.60 0.350 95.0 5.0 6 
+ 6. 3.00 0.350 95.0 5.0 1 
+ Run Events: Yes 
+ Gradient Start (Relative to Injection): 0 uL
+ 2D Repeat: No 
+
+-- END PUMP --
+
+-- AUTOSAMPLER --
+
+Waters Acquity AutoSampler 
+ Run Time: 3.00 min
+ Comment:  
+ Load Ahead: Disabled 
+ Injection Mode: Partial Loop With Needle Overfill 
+ LoopOffline: Disable 
+ Weak Wash Solvent Name:  
+ Weak Wash Volume: 1000 uL
+ Strong Wash Solvent Name:  
+ Strong Wash Volume: 500 uL
+ Target Column Temperature: 35.0 °C
+ Column Temperature Alarm Band: Disabled 
+ Target Sample Temperature: 10.0 °C
+ Sample Temperature Alarm Band: Disabled 
+ Full Loop Overfill Factor: Automatic 
+ Syringe Draw Rate: Automatic 
+ Needle Placement: Automatic 
+ Pre-Aspirate Air Gap: Automatic 
+ Post-Aspirate Air Gap: Automatic 
+ Column Temperature Data Channel: No 
+ Ambient Temperature Data Channel: No 
+ Sample Temperature Data Channel: No 
+ Sample Organizer Temperature Data Channel: No 
+ Sample Pressure Data Channel: No 
+ Preheater Data Channel: No 
+ Switch 1: No Change 
+ Switch 2: No Change 
+ Switch 3: No Change 
+ Switch 4: No Change 
+ Chart Out: Sample Pressure 
+ Sample Temp Alarm: Disabled 
+ Column Temp Alarm: Disabled 
+ Run Events: Yes 
+ Needle Overfill Flush: Automatic 
+ No Injection: No 
+ Active Preheater: Enabled 
+
+
+Sample Run Injection Parameter
+
+Injection Volume (ul)   -   1.00
+-- END AUTOSAMPLER --
+
+----------------------------  oOo  -----------------------------
+
+
+End of experimental record.
+
+------------------- Waters Acquity SM Postrun Report  ---------------
+
+
+
+ Software Version: 1.73.4159 
+ Firmware Version: 1.70.392 (Sep 28 2017) 
+ Checksum: 0x30b5761d 
+ Serial Number: A19FLP193M 
+ Sample Syringe Size: 100.0 
+ Sample Loop Size: 10.0 
+ Needle Size: 10.0 
+ Column Type: ACQUITY UPLC® HSS T3 1.8µm 
+ Column Serial Number: 02693204115169 
+ Total Injections on Column: 2692 
+ Auto-defrost Enabled: Yes 
+ Minimum Sample Temperature: 10.0 
+ Maximum Sample Temperature: 10.0 
+ Average Sample Temperature: 10.0 
+ Minimum Column Temperature: 38.7 
+ Maximum Column Temperature: 40.1 
+ Average Column Temperature: 39.4 
+ Measured Loop Volume: 0.000 
+ Measured Loop Volume No Pressure: 0.000 
+
+----------------------------  oOo  -----------------------------
+
+
+
+
+
+------------------- Waters Acquity SDS Postrun Report  ---------------
+
+
+
+ Software Version: 1.73.3499 
+ Firmware Version: 1.73.423 (Apr 14 2020) 
+ Checksum: 0x191bbcbf 
+ Serial Number: B19BSP149G 
+ Minimum System Pressure: 6471.8 
+ Maximum System Pressure: 7166.4 
+ Average System Pressure: 6813.3 
+ Minimum Degasser Pressure: 0.5 
+ Maximum Degasser Pressure: 0.5 
+ Average Degasser Pressure: 0.5 
+ User Set Maximum Pressure: 18000 
+
+----------------------------  oOo  -----------------------------
+
