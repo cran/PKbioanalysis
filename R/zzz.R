@@ -36,6 +36,7 @@ refresh_config <- function() {
 
 
 update_config <- function(
+  logkey = NULL,
   base_url = NULL,
   api_key = NULL,
   model = NULL,
@@ -52,6 +53,9 @@ update_config <- function(
     config <- yaml::read_yaml(configfile)
   )
 
+  if (!is.null(logkey)) {
+    config$logkey <- logkey
+  }
   if (!is.null(base_url)) {
     config$api_base_url <- base_url
   }
@@ -86,10 +90,10 @@ install_py_dep <- function(..., envname = "PKbioanalysis") {
 
   reticulate::virtualenv_create(envname, python = python_exec)
 
+  reticulate::py_install("pandas<3", env = envname, pip = TRUE)
   reticulate::py_install("rainbow-api", env = envname, pip = TRUE)
   reticulate::py_install("numpy", env = envname, pip = TRUE)
   reticulate::py_install("scipy", env = envname, pip = TRUE)
-  reticulate::py_install("pandas", env = envname, pip = TRUE)
 }
 
 
@@ -124,12 +128,22 @@ py <- NULL
     PKbioanalysis.cache_dir = file.path(
       getOption("PKbioanalysis.data_dir"),
       "plates_cache"
+    ), 
+    PKbioanalysis.chrom_cache_dir = file.path(
+      getOption("PKbioanalysis.data_dir"),
+      "chrom_cache"
+    ),
+    PKbioanalysis.quant_cache_dir = file.path(
+      getOption("PKbioanalysis.data_dir"),
+      "quant_cache"
     )
   )
 
   # Set the environment variable for the package
   PKbioanalysis_env$data_dir <- getOption("PKbioanalysis.data_dir")
   PKbioanalysis_env$cache_dir <- getOption("PKbioanalysis.cache_dir") 
+  PKbioanalysis_env$chrom_cache_dir <- getOption("PKbioanalysis.chrom_cache_dir")
+  PKbioanalysis_env$quant_cache_dir <- getOption("PKbioanalysis.quant_cache_dir")
 
   refresh_config()
 
@@ -147,7 +161,7 @@ py <- NULL
     )
   }
 
-  py_packages <- c("rainbow_api", "numpy", "scipy", "pandas")
+  py_packages <- c("pandas<3", "rainbow_api", "numpy", "scipy")
   reticulate::py_require(py_packages)
 
   pysrc_path <- system.file("pysrc", package = pkgname)

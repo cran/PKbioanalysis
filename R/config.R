@@ -13,6 +13,12 @@ config_module_server <- function(id) {
       showModal(modalDialog(
         title = "PKbioanalysis Configuration",
         textInput(
+          ns("logkey"), 
+          "Log Key (Column name in quant data for sample log ID)",
+          value = "#"
+        ),
+        shiny::tags$hr(),
+        textInput(
           ns("base_url"),
           "API Base URL",
           value = get_pkbioanalysis_option("api_base_url")
@@ -70,6 +76,7 @@ config_module_server <- function(id) {
       tryCatch(
         {
           update_config(
+            logkey = input$logkey,
             base_url = input$base_url,
             api_key = input$api_key,
             model = input$model,

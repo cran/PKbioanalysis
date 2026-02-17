@@ -1,21 +1,28 @@
 chrom_data_load_ui <- function(id) {
   ns <- NS(id)
-  tagList(
-    fluidRow(
-      column(
-        width = 4,
-        fileInput(
-          ns("chrom_file"),
-          "Upload Chromatography Data File",
-          multiple = TRUE #,
-          # accept = c(".rds", ".RDS", ".raw", ".mzML", ".mzml", "mzXML", ".mzxml")
-        ),
-        textInput(ns("chrom_path"), "or provide path to folder", value = "")
+  bslib::card(
+    card_header("Load Chromatography Data"),
+    bslib::layout_columns(
+      col_widths = c(6, 6),
+      fileInput(
+        ns("chrom_file"),
+        "Upload Chromatography Data File",
+        multiple = TRUE,
+        buttonLabel = "Browse...",
+        placeholder = "No file selected"
       ),
-      column(
-        width = 4,
-        actionButton(ns("load_chrom_data"), "Load Data")
+      textInput(
+        ns("chrom_path"),
+        "or provide path to folder",
+        value = "",
+        placeholder = "C:/path/to/folder"
       )
+    ),
+    actionButton(
+      ns("load_chrom_data"),
+      "Load Data",
+      icon = icon("upload"),
+      class = "btn-primary"
     )
   )
 }
@@ -56,140 +63,205 @@ chrom_data_load_server <- function(id, peaksobj) {
 
 chromapp_ui <- function() {
   bslib::page_navbar(
-    title = "Chromatography App",
+    title = "Chromatography Analysis",
+    theme = bslib::bs_theme(version = 5, preset = "bootstrap"),
     header = shinyjs::useShinyjs(),
+    
     bslib::nav_panel(
-      "Load Chromatography Data",
+      "Load Data",
+      icon = icon("folder-open"),
       chrom_data_load_ui("chrom_data_load")
     ),
+    
     bslib::nav_panel(
       title = "Dashboard",
+      icon = icon("chart-line"),
       bslib::navset_card_tab(
-        nav_panel("Summary", verbatimTextOutput("run_summary")),
+        nav_panel(
+          "Summary",
+          icon = icon("info-circle"),
+          verbatimTextOutput("run_summary")
+        ),
         nav_panel(
           "Samples",
+          icon = icon("vial"),
           rhandsontable::rHandsontableOutput(
             "sample_table_overview",
             height = "650px"
           )
         ),
-        nav_panel("Transitions", DTOutput("trans_table_overview")),
+        nav_panel(
+          "Transitions",
+          icon = icon("exchange-alt"),
+          DTOutput("trans_table_overview")
+        ),
         nav_panel(
           "Compounds",
+          icon = icon("flask"),
           uiOutput("cmpd_overview_ui"),
           DTOutput("cmpd_table_overview")
         )
       )
     ),
+    
     bslib::nav_panel(
       "Peak Parameters",
+      icon = icon("sliders-h"),
       bslib::layout_sidebar(
-        sidebar = sidebar(
-          h3("Smoothing Setting"),
-          selectInput(
-            "smoothing_mode",
-            label = ("Smoothing Mode"),
-            choices = c(
-              "Savitzky-Golay" = 1,
-              "Mean" = 2,
-              "Gaussian" = 3,
-              "Median" = 4
+        sidebar = bslib::sidebar(
+          width = 300,
+          bslib::card(
+            card_header("Smoothing Settings"),
+            selectInput(
+              "smoothing_mode",
+              label = "Smoothing Mode",
+              choices = c(
+                "Savitzky-Golay" = 1,
+                "Mean" = 2,
+                "Gaussian" = 3,
+                "Median" = 4
+              ),
+              selected = 1
             ),
-            selected = 1
+            numericInput(
+              "smoothing_window",
+              label = "Smoothing Window",
+              min = 1,
+              max = 20,
+              value = 3
+            ),
+            numericInput(
+              "smoothing_iter",
+              label = "Smoothing Iterations",
+              min = 1,
+              max = 20,
+              value = 1
+            )
           ),
-          numericInput(
-            "smoothing_window",
-            label = ("Smoothing Window"),
-            min = 1,
-            max = 20,
-            value = 3
-          ),
-          numericInput(
-            "smoothing_iter",
-            label = ("Smoothing Iterations"),
-            min = 1,
-            max = 20,
-            value = 1
-          ),
-          h4("Peak Finding Setting"),
-          numericInput(
-            "peak_cut_off",
-            label = ("Peak Cut Off"),
-            min = 10,
-            max = 1e20,
-            value = 0.5
-          ),
-          actionButton("apply_smoothing", "Apply")
+          bslib::card(
+            card_header("Peak Finding Settings"),
+            numericInput(
+              "peak_cut_off",
+              label = "Peak Cut Off",
+              min = 10,
+              max = 1e20,
+              value = 0.5
+            ),
+            actionButton(
+              "apply_smoothing",
+              "Apply Settings",
+              icon = icon("check"),
+              class = "btn-success",
+              width = "100%"
+            )
+          )
         ),
-
-        ## end of sidebar
         uiOutput("sample_id_smooth"),
         tabsetPanel(
           type = "tabs",
           id = "smoothing_tabs",
           tabPanel(
-            "smoothed",
+            "Smoothed",
+            icon = icon("chart-area"),
             plotOutput("smoothed_chrom", height = "800px", width = "100%")
           ),
           tabPanel(
-            "original",
+            "Original",
+            icon = icon("chart-line"),
             value = "unsmoothed",
             plotOutput("original_chrom", height = "800px", width = "100%")
           )
         )
       )
     ),
+    
     bslib::nav_panel(
-      "Peak integration",
+      "Peak Integration",
+      icon = icon("calculator"),
       id = "auto_peak",
-      h2("Peak integration"),
       fluidPage(
-        bslib::layout_column_wrap(
-          width = NULL,
-          style = bslib::css(grid_template_columns = "1fr 2fr 1fr"),
-          height = "100px",
-          actionButton("prev_sample", label = "", icon = icon("caret-left")),
-          uiOutput("sample_id_uioutput"),
-          actionButton("next_sample", label = "", icon = icon("caret-right")),
-
-          actionButton(
-            "prev_compound_btn",
-            label = "",
-            icon = icon("caret-left")
-          ),
-          uiOutput("compound_id_uioutput"),
-          actionButton(
-            "next_compound_btn",
-            label = "",
-            icon = icon("caret-right")
+        bslib::card(
+          card_header("Navigation & Selection"),
+          bslib::layout_columns(
+            col_widths = c(6, 6),
+            # Sample selection column
+            div(
+              uiOutput("sample_id_uioutput"),
+              bslib::layout_columns(
+                col_widths = c(6, 6),
+                actionButton(
+                  "prev_sample",
+                  label = "",
+                  icon = icon("caret-left"),
+                  class = "btn-outline-primary",
+                  width = "100%"
+                ),
+                actionButton(
+                  "next_sample",
+                  label = "",
+                  icon = icon("caret-right"),
+                  class = "btn-outline-primary",
+                  width = "100%"
+                )
+              )
+            ),
+            # Compound selection column
+            div(
+              uiOutput("compound_id_uioutput"),
+              bslib::layout_columns(
+                col_widths = c(6, 6),
+                actionButton(
+                  "prev_compound_btn",
+                  label = "",
+                  icon = icon("caret-left"),
+                  class = "btn-outline-primary",
+                  width = "100%"
+                ),
+                actionButton(
+                  "next_compound_btn",
+                  label = "",
+                  icon = icon("caret-right"),
+                  class = "btn-outline-primary",
+                  width = "100%"
+                )
+              )
+            )
           )
         ),
-
         tabsetPanel(
           type = "tabs",
           id = "integration_tabs",
           tabPanel(
             "Chromatogram",
+            icon = icon("wave-square"),
             shinyWidgets::dropdownButton(
-              tags$h3("Peak integration"),
+              tags$h3("Peak Integration"),
               radioButtons(
                 "integration_menu",
-                "integration",
+                "Integration",
                 choices = c("Save as default (all)" = "all")
               ),
-              shinyWidgets::prettySwitch(
-                "manual_peak_toggle",
-                "manual",
-                fill = TRUE,
-                value = FALSE
+              shiny::radioButtons(
+                "integration_mode_checkbox",
+                "Mode",
+                choices = c(
+                  "Manual" = "manual",
+                  "Automatic" = "auto",
+                  "AI" = "ai"
+                ),
+                selected = "auto",
+                inline = TRUE
               ),
-              actionButton("save_peak", "Save Peak"),
-
+              actionButton(
+                "save_peak",
+                "Save Peak",
+                icon = icon("save")
+              ),
               circle = FALSE,
               status = "primary",
-              icon = icon("save"),
+              icon = icon("cog"),
               width = "300px",
-              tooltip = "Save Peak Selected Peak",
+              tooltip = "Peak Integration Settings",
               inputId = "peak_menu"
             ),
             plotly::plotlyOutput("chrom_plots"),
@@ -200,11 +272,11 @@ chromapp_ui <- function() {
             )
           ),
           tabPanel(
-            "Areas Plot",
-            # plotlyOutput("integration_areas_plotly")
+            "Areas (Bar)",
+            icon = icon("chart-bar"),
             bslib::card(
               bslib::card_header(
-                "Areas Plot",
+                "Peak Areas",
                 bslib::popover(
                   bsicons::bs_icon("gear"),
                   checkboxInput(
@@ -219,15 +291,16 @@ chromapp_ui <- function() {
                 width = "100%",
                 height = "100%"
               ),
-              height = "500px",
+              height = "600px",
               full_screen = TRUE
             )
           ),
           tabPanel(
-            "Areas Plot2",
+            "Areas (Dot)",
+            icon = icon("braille"),
             bslib::card(
               bslib::card_header(
-                "Areas Plot",
+                "Peak Areas",
                 bslib::popover(
                   bsicons::bs_icon("gear"),
                   checkboxInput(
@@ -242,42 +315,74 @@ chromapp_ui <- function() {
                 width = "100%",
                 height = "100%"
               ),
-              height = "500px",
+              height = "600px",
               full_screen = TRUE
             )
           ),
           tabPanel(
-            "RT Plot",
+            "Retention Time",
+            icon = icon("clock"),
             bslib::card(
               ggiraph::girafeOutput(
                 "integration_RT_ggiraph",
                 width = "100%",
                 height = "100%"
               ),
-              height = "500px",
+              height = "600px",
               full_screen = TRUE
             )
           ),
-          tabPanel("Table", DTOutput("integration_table")),
-          tabPanel("Summary", verbatimTextOutput("integration_summary"))
+          tabPanel(
+            "Table",
+            icon = icon("table"),
+            DTOutput("integration_table")
+          ),
+          tabPanel(
+            "Summary",
+            icon = icon("list-alt"),
+            verbatimTextOutput("integration_summary")
+          )
         )
       )
     ),
+    
     bslib::nav_panel(
-      "Reports",
+      "Exports",
+      icon = icon("download"),
       id = "exports_settings",
-      h2("Exports tab content"),
-      DTOutput("exports_table"),
-      downloadButton("downloadData", "Download")
+      bslib::card(
+        card_header("Export Data"),
+        DTOutput("exports_table"),
+        downloadButton(
+          "downloadData",
+          "Download",
+          icon = icon("download"),
+          class = "btn-primary"
+        )
+      )
     ),
+    
+    nav_spacer(),
+    
     bslib::nav_menu(
-      title = "more",
+      title = "Settings",
       align = "right",
-      bslib::nav_item(actionButton("exit", "Exit"))
+      icon = icon("cog"),
+      bslib::nav_item(
+        config_module_ui("config")
+      ),
+      bslib::nav_item(
+        actionButton(
+          "exit",
+          "Exit",
+          icon = icon("power-off"),
+          class = "btn-danger",
+          style = "width: 100%; margin-top: 10px;"
+        )
+      )
     )
   )
 }
-
 
 chromapp_server <- function(input, output, session) {
   js <- "
@@ -701,6 +806,7 @@ chromapp_server <- function(input, output, session) {
     req(class(peaksobj()) == "ChromRes")
     req(!is.null(input$sample_id_smooth))
     req(is_smoothed(peaksobj())$smoothed[1]) # check if smoothed
+    
 
     progress <- Progress$new(session, min = 1, max = 2)
     progress$set(
@@ -898,7 +1004,7 @@ chromapp_server <- function(input, output, session) {
 
       # has default RT +> any ok
       if (
-        has_default_RT(
+        has_default_bounds(
           peaksobj(),
           .get_compound_id_from_compound_trans(
             current_cmpds_df(),
@@ -943,11 +1049,11 @@ chromapp_server <- function(input, output, session) {
         "transition: ",
         get_trans_label_from_id(peaksobj(), current_trans_id())
       ),
-      tags$p("Manual Peak: ", input$manual_peak_toggle),
-      tags$p(paste0("Peak Start: ", min(selected_peak_range()$x))),
-      tags$p(paste0("Peak End: ", max(selected_peak_range()$x))),
-      tags$p(paste0("save option:", input$integration_menu)),
-      title = "Add Compound",
+      tags$p("Mode: ", toupper(input$integration_mode_checkbox)),
+      tags$p(paste0("Peak Search Start: ", min(selected_peak_range()$x))),
+      tags$p(paste0("Peak Search End: ", max(selected_peak_range()$x))),
+      tags$p(paste0("Save option: ", toupper(input$integration_menu))),
+      title = "Verify Peak Integration",
       easyClose = TRUE,
       footer = tagList(
         actionButton("verify_integration_button", "save"),
@@ -961,6 +1067,15 @@ chromapp_server <- function(input, output, session) {
     req(input$sample_file_input)
     req(input$compound_trans_input)
     req(selected_peak_range())
+
+    removeModal()
+
+    showModal(modalDialog(
+      tags$h2("Processing"),
+      tags$p("Updating integration parameters..."),
+      footer = NULL,
+      easyClose = FALSE
+    ))
 
     # set sample name to NULL if all is selected.
     if (input$integration_menu == "all") {
@@ -980,7 +1095,7 @@ chromapp_server <- function(input, output, session) {
       peak_start = min(selected_peak_range()$x),
       peak_end = max(selected_peak_range()$x),
       target = input$integration_menu,
-      manual = input$manual_peak_toggle
+      mode = input$integration_mode_checkbox
     ) |>
       peaksobj()
 
@@ -1203,21 +1318,14 @@ chromapp_server <- function(input, output, session) {
         fixedColumns = list(leftColumns = 1, rightColumns = 1),
         fixedHeader = TRUE,
         keyTable = TRUE
-      ),
-      callback = htmlwidgets::JS(
-        "table.on('dblclick', 'td',",
-        "  function() {",
-        "    var row = table.cell(this).index().row;",
-        "    var col = table.cell(this).index().column;",
-        "    Shiny.setInputValue('dt_dblclick', {dt_row: row, dt_col: col});",
-        "  }",
-        ");"
       )
     )
   })
 
-  observeEvent(input$dt_dblclick, {
-    clicked_dat <- peaksobj()@peaks[input$dt_dblclick$dt_row + 1, ]
+  # Handle table row selection (click or programmatic)
+  observeEvent(input$integration_table_rows_selected, {
+    req(input$integration_table_rows_selected)
+    clicked_dat <- peaksobj()@peaks[input$integration_table_rows_selected, ]
     updateSelectInput(
       session,
       "sample_file_input",
@@ -1228,50 +1336,102 @@ chromapp_server <- function(input, output, session) {
       "compound_trans_input",
       selected = clicked_dat$compound
     )
-
     updateTabsetPanel(
       session,
       inputId = "integration_tabs",
       selected = "Chromatogram"
-    ) # move to integration tab
+    )
   })
+
+  # Sync table highlight when inputs change
+  observe({
+    req(peaksobj())
+    req(input$sample_file_input)
+    req(input$compound_trans_input)
+    
+    peaks_df <- peaksobj()@peaks
+    
+    # Find matching row
+    matching_row <- which(
+      peaks_df$sample == input$sample_file_input &
+        peaks_df$compound == input$compound_trans_input
+    )
+    
+    if (length(matching_row) > 0) {
+      # Subtract 1 because DataTable uses 0-based indexing
+      DT::dataTableProxy("integration_table") |>
+        DT::selectRows(matching_row - 1)
+    }
+  }, priority = -100)  # Lower priority to avoid conflicts
 
   ########################################################################################
 
-  ## buttons for next and previous sample ####
+  ## buttons for next and previous navigation ####
+  # Generic helper function to navigate through items
+  navigate_items <- function(current_value, items_vector, direction = 1) {
+    req(current_value)
+    item_idx <- which(items_vector == current_value)
+    
+    if (length(item_idx) == 0) return(NULL)
+    
+    new_idx <- item_idx + direction
+    
+    # Check bounds
+    if (new_idx < 1 || new_idx > length(items_vector)) {
+      return(NULL)
+    }
+    
+    return(items_vector[new_idx])
+  }
+
+  # Sample navigation
   observeEvent(input$next_sample, {
-    current_sample <- input$sample_id
-    sample_idx <- which(samples_df()$sample == current_sample)
-    next_sample <- samples_df()$sample[sample_idx + 1]
-    updateSelectInput(session, "sample_file_input", selected = next_sample)
+    new_sample <- navigate_items(input$sample_file_input, samples_df()$sample, direction = 1)
+    if (!is.null(new_sample)) {
+      updateSelectInput(session, "sample_file_input", selected = new_sample)
+    }
   })
 
   observeEvent(input$prev_sample, {
-    current_sample <- input$sample_id
-    sample_idx <- which(samples_df()$sample == current_sample)
-    prev_sample <- samples_df()$sample[sample_idx - 1]
-    updateSelectInput(session, "sample_file_input", selected = prev_sample)
+    new_sample <- navigate_items(input$sample_file_input, samples_df()$sample, direction = -1)
+    if (!is.null(new_sample)) {
+      updateSelectInput(session, "sample_file_input", selected = new_sample)
+    }
   })
 
-  ## button for next and previous transition #####
-  observeEvent(input$next_cmpd, {
-    current_cmpd <- input$compound_trans_input
-    cmpd_names <- list_compound_names(peaksobj())
-    cmpd_idx <- which(cmpd_names == current_cmpd)
-    next_cmpd <- cmpd_names[cmpd_idx + 1]
-    updateSelectInput(session, "cmpd_id", selected = next_cmpd)
+  # Compound/Transition navigation
+  observeEvent(input$next_compound_btn, {
+    new_cmpd <- navigate_items(input$compound_trans_input, current_cmpds_df()$compound_trans, direction = 1)
+    if (!is.null(new_cmpd)) {
+      updateSelectInput(session, "compound_trans_input", selected = new_cmpd)
+    }
   })
 
-  observeEvent(input$prev_trans, {
-    current_cmpd <- input$compound_trans_input
-    cmpd_names <- list_compound_names(peaksobj())
-    cmpd_idx <- which(cmpd_names == current_cmpd)
-    prev_cmpd <- cmpd_names[cmpd_idx - 1]
-    updateSelectInput(session, "cmpd_id", selected = prev_cmpd)
+  observeEvent(input$prev_compound_btn, {
+    new_cmpd <- navigate_items(input$compound_trans_input, current_cmpds_df()$compound_trans, direction = -1)
+    if (!is.null(new_cmpd)) {
+      updateSelectInput(session, "compound_trans_input", selected = new_cmpd)
+    }
   })
+
 
   ##################################################################
+  # download integration table ####
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste0("integration_table_", Sys.Date(), ".csv")
+    },
+    content = function(file) {
+      req(peaksobj())
+      utils::write.csv(peaksobj()@peaks, file, row.names = FALSE)
+    }
+  )
 
+  
+  # config
+  config_module_server("config")
+
+  #################################################################
   # exit button ####
   observeEvent(input$exit, {
     shinyalert::shinyalert(
@@ -1279,8 +1439,10 @@ chromapp_server <- function(input, output, session) {
       type = "warning",
       showConfirmButton = TRUE,
       showCancelButton = TRUE,
-      callbackR = function() {
-        stopApp(peaksobj())
+      callbackR = function(value) {
+        if (isTRUE(value)) {
+          stopApp(peaksobj())
+        }
       }
     )
   })

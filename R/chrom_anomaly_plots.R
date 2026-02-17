@@ -5,8 +5,8 @@
     dplyr::select(
       "sample_id",
       "filename",
-      "sample_name",
-      "sample_type",
+      # "sample_name",
+      # "sample_type",
       "area",
       "compound_id",
       "observed_peak_start",
@@ -156,19 +156,19 @@ plot_areas_heatmap <- function(chrom_res) {
   # filename, compound_label, type
   dat <- .vis_data(chrom_res)
   res <- ggplot(dat, aes(x = .data$sample_id, y = .data$compound_label, fill = .data$area)) +
-    # ggplot2::geom_tile(lwd = 1.5, color = "white", fill = "red") +
+    # ggplot2::geom_tile(lwd = 1.5, color = "white") +
     ggiraph::geom_tile_interactive(
       aes(tooltip = paste0(.data$filename, .data$area, .data$type), data_id = .data$split_id),
       color = "white",
-      lwd = 0.6,
+      lwd = 1.5,
       linetype = 1
     ) +
-    facet_grid(~type, scales = "free_x", space = "free_x") +
+    # facet_grid(~compound, scales = "free_x", space = "free_x") 
     theme(
       axis.title.x = element_blank(),
       axis.title.y = element_blank(),
-      axis.ticks = element_blank(),
-      axis.text.x = element_blank()
+      # axis.text.x = element_blank(),
+      axis.ticks = element_blank()
     )
   res
 }

@@ -513,6 +513,40 @@ retrieve_full_log_by_id <- function(log_ids) {
   full_log
 }
 
+#' Retrieve full log information by injection IDs 
+#' Retrieve injection id, then join log and all related tables to get full study design info for the given injection ids
+#' @param injec_ids vector of injection ids
+#' @return data.frame with subject info and dil info
+#' @noRd
+retrieve_log_by_injecid <- function(injec_ids) {
+  db <- .connect_to_db()
+  on.exit(.close_db(db), add = TRUE)
+
+  # Retrieve samples table for given injection IDs
+  injec_df <- DBI::dbGetQuery(
+    db,
+    sprintf(
+      "SELECT injec_id, log_id, dil, file_name FROM samples WHERE injec_id IN (%s)",
+      paste(sprintf("'%s'", injec_ids), collapse = ",")
+    )
+  )
+
+  if (nrow(injec_df) == 0) {
+    stop("No matching injection IDs found in samples table.")
+  }
+
+  # Retrieve full log info for the associated log_ids
+  full_log <- retrieve_full_log_by_id(injec_df$log_id)
+
+  # Join injection info to full log by log_id
+  result <- dplyr::left_join(
+    injec_df,
+    full_log,
+    by = "log_id"
+  )
+
+  result
+}
 
 plot_study_design <- function(study_id, plot = TRUE) {
   df <- retrieve_full_study_log(study_id)

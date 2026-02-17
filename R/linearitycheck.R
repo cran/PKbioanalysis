@@ -13,91 +13,91 @@ reverse_predict <- function(fit, newdata, intercept) {
   (newdata - intercept) / slope
 }
 
-#' Update linearity response, type and stdconc columns
-#' response from peaktab
-#' type and stdconc from filetab
-#' @param quantres QuantRes object
-#' @param compound_id character. If NULL, all compounds will be updated
-#' @param meta_only logical. If TRUE, only metadata will be updated. lm will not be deleted
-#'
-#' @return QuantRes object
-#' @author Omar Elashkar
-#' @noRd
-sync_linearity <- function(quantres, compound_id = NULL, meta_only = FALSE) {
-  if (is.null(compound_id)) {
-    compound_id <- quantres@compounds$compound_id
-  }
+# #' Update linearity response, type and stdconc columns
+# #' response from peaktab
+# #' type and stdconc from filetab
+# #' @param quantres QuantRes object
+# #' @param compound_id character. If NULL, all compounds will be updated
+# #' @param meta_only logical. If TRUE, only metadata will be updated. lm will not be deleted
+# #'
+# #' @return QuantRes object
+# #' @author Omar Elashkar
+# #' @noRd
+# sync_linearity <- function(quantres, compound_id = NULL, meta_only = FALSE) {
+#   if (is.null(compound_id)) {
+#     compound_id <- quantres@compounds$compound_id
+#   }
 
-  for (cmpd in compound_id) {
-    cmpd_name <- get_compound_name(quantres, cmpd)
-    spiked_name <- paste0("spiked_", cmpd_name)
+#   for (cmpd in compound_id) {
+#     cmpd_name <- get_compound_name(quantres, cmpd)
+#     spiked_name <- paste0("spiked_", cmpd_name)
 
-    is_id <- get_cmpd_IS(quantres, cmpd)
-    if (!is.na(is_id)) {
-      if (is_integrated(quantres, is_id)) {
-        IS_area_df <-
-          quantres@peaks |>
-          dplyr::filter(compound_id == is_id) |>
-          dplyr::select("filename", "area", "compound_id") |>
-          dplyr::rename(IS_area = "area")
-      }
-    }
-    if (!exists("IS_area_df")) {
-      IS_area_df <- data.frame(
-        filename = character(),
-        IS_area = numeric(),
-        compound_id = character()
-      )
-    }
+#     is_id <- get_cmpd_IS(quantres, cmpd)
+#     if (!is.na(is_id)) {
+#       if (is_integrated(quantres, is_id)) {
+#         IS_area_df <-
+#           quantres@peaks |>
+#           dplyr::filter(compound_id == is_id) |>
+#           dplyr::select("filename", "area", "compound_id") |>
+#           dplyr::rename(IS_area = "area")
+#       }
+#     }
+#     if (!exists("IS_area_df")) {
+#       IS_area_df <- data.frame(
+#         filename = character(),
+#         IS_area = numeric(),
+#         compound_id = character()
+#       )
+#     }
 
-    quantres@linearity[[cmpd]]$linearitytab <- quantres@peaks |>
-      dplyr::filter(.data$compound_id == !!cmpd) |>
-      dplyr::select("filename", "area", "compound_id") |>
-      dplyr::left_join(
-        quantres@metadata,
-        by = c("filename" = "filename")
-      ) |>
-      # dplyr::filter(.data$type %in% c("Standard", "QC")) |>
-      dplyr::rename(abs_response = "area") |>
-      dplyr::left_join(IS_area_df, by = dplyr::join_by("filename")) |> # NOTE SAME cmpd, so no cmpd_id
-      dplyr::mutate(rel_response = .data$abs_response / .data$IS_area) |>
-      dplyr::select(
-        "filename",
-        "type",
-        "sample_location",
-        "sample_id",
-        "abs_response",
-        "rel_response",
-        spiked_name,
-        "dilution_factor",
-        "subject_id",
-        "sampling_time",
-        "dosage",
-        "factor"
-      ) |>
-      dplyr::rename(stdconc = !!spiked_name) |> # rename to stdconc/nominal_conc
-      dplyr::mutate(include = TRUE) |>
-      dplyr::mutate(estimated_conc = as.numeric(NA)) |> # reverse
-      dplyr::mutate(residual_conc = as.numeric(NA)) |> # reverse
-      dplyr::mutate(dev_conc = as.numeric(NA)) |>
-      dplyr::mutate(estimate_CI_lwr = as.numeric(NA)) |>
-      dplyr::mutate(estimate_CI_upr = as.numeric(NA)) |>
-      dplyr::mutate(estimated_pred_lwr = as.numeric(NA)) |>
-      dplyr::mutate(estimated_pred_upr = as.numeric(NA)) |>
-      dplyr::mutate(estimated_response = as.numeric(NA)) |>
-      dplyr::mutate(residual_response = as.numeric(NA)) |>
-      dplyr::mutate(rstandard_response = as.numeric(NA)) |>
-      dplyr::mutate(passed = as.logical(NA))
+#     quantres@linearity[[cmpd]]$linearitytab <- quantres@peaks |>
+#       dplyr::filter(.data$compound_id == !!cmpd) |>
+#       dplyr::select("filename", "area", "compound_id") |>
+#       dplyr::left_join(
+#         quantres@metadata,
+#         by = c("filename" = "filename")
+#       ) |>
+#       # dplyr::filter(.data$type %in% c("Standard", "QC")) |>
+#       dplyr::rename(abs_response = "area") |>
+#       dplyr::left_join(IS_area_df, by = dplyr::join_by("filename")) |> # NOTE SAME cmpd, so no cmpd_id
+#       dplyr::mutate(rel_response = .data$abs_response / .data$IS_area) |>
+#       dplyr::select(
+#         "filename",
+#         "type",
+#         "sample_location",
+#         "sample_id",
+#         "abs_response",
+#         "rel_response",
+#         spiked_name,
+#         "dilution_factor",
+#         "subject_id",
+#         "sampling_time",
+#         "dosage",
+#         "factor"
+#       ) |>
+#       dplyr::rename(stdconc = !!spiked_name) |> # rename to stdconc/nominal_conc
+#       dplyr::mutate(include = TRUE) |>
+#       dplyr::mutate(estimated_conc = as.numeric(NA)) |> # reverse
+#       dplyr::mutate(residual_conc = as.numeric(NA)) |> # reverse
+#       dplyr::mutate(dev_conc = as.numeric(NA)) |>
+#       dplyr::mutate(estimate_CI_lwr = as.numeric(NA)) |>
+#       dplyr::mutate(estimate_CI_upr = as.numeric(NA)) |>
+#       dplyr::mutate(estimated_pred_lwr = as.numeric(NA)) |>
+#       dplyr::mutate(estimated_pred_upr = as.numeric(NA)) |>
+#       dplyr::mutate(estimated_response = as.numeric(NA)) |>
+#       dplyr::mutate(residual_response = as.numeric(NA)) |>
+#       dplyr::mutate(rstandard_response = as.numeric(NA)) |>
+#       dplyr::mutate(passed = as.logical(NA))
 
-    if (!meta_only) {
-      quantres@linearity[[cmpd]]$results <- NA
-    }
-  }
+#     if (!meta_only) {
+#       quantres@linearity[[cmpd]]$results <- NA
+#     }
+#   }
 
-  validObject(quantres)
+#   validObject(quantres)
 
-  quantres
-}
+#   quantres
+# }
 
 
 

@@ -235,7 +235,7 @@ chromres_to_matrix <- function(chrom_res, wide = FALSE) {
 #' @import checkmate
 #' @import dplyr
 #' @export
-has_default_RT <- function(chrom_res, compound_id) {
+has_default_bounds <- function(chrom_res, compound_id) {
   checkmate::assertClass(chrom_res, "ChromRes")
   checkmate::assertCount(compound_id, positive = TRUE)
   # compound_id <- .cmpds_string_handler(compound_id)

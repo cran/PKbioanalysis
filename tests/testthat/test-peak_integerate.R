@@ -1,3 +1,5 @@
+skip_if_no_py()
+
 test_that(".which_transition", {
   .which_transition(main, 1) |> expect_equal(1)
   .which_transition(main, 2) |> expect_equal(2)
@@ -66,7 +68,7 @@ test_that("integrate_all", {
     compound_id = 20,
     peak_start = 0.1,
     peak_end = 1,
-    manual = TRUE
+    mode = "manual"
   )
 
   is_integrated(x, sample_id = 6, compound_id = 20) |> expect_true()
@@ -76,27 +78,57 @@ test_that("integrate_all", {
 })
 
 
-test_that("set_expected_bounds", {})
-
-
-test_that("set_observed_bounds", {})
-
-
 test_that("extract_peak_bounds", {
-  bounds <- extract_peak_bounds(main, compound_id = 1)
+
+  extract_peak_bounds(main, compound_id = 1) |> expect_error("Compound must have")
+
+  # set expected bounds
+  # x <- update_RT(
+  #   main,
+  #   sample_id = NULL,
+  #   compound_id = "C1",
+  #   target = "all",
+  #   force = FALSE,
+  #   manual = FALSE,
+  #   peak_start = 0.1,
+  #   peak_end = 1
+  # )
+
+  # set observed bounds 
+  
+  x <- .integrate_all_slack(
+    main,
+    compound_id = 20,
+    peak_start = 0.1,
+    peak_end = 1,
+    mode = "manual"
+  )
+
+  bounds <- extract_peak_bounds(x, compound_id = 20)
   bounds |> expect_type("list")
+  length(bounds$min) |> expect_equal(7)
   bounds$min |> expect_type("double")
   bounds$max |> expect_type("double")
-  bounds$min |> expect_equal(0.5)
-  bounds$max |> expect_equal(1.5)
 
-  extract_peak_bounds(main, compound_id = 2) |>
-    expect_error("No observed RT values found for the specified compound_id.")
+  bounds$min |> unique() |> expect_equal(0.1)
+  bounds$max |> unique() |> expect_equal(1)
+
 })
 
 
 test_that("integrate function", {
-  integrate(main, 1, NULL)
+  x <- update_RT(
+    main,
+    compound_id = 1,
+    sample_id = NULL,
+    peak_start = 0.5,
+    peak_end = 1.5,
+    target = "all",
+    mode = "manual"
+  ) |> expect_no_error()
+
+  is_integrated(x, sample_id = 4, compound_id = 1) |> expect_true()
+  integrate(x, compound_id = 1, samples_ids = NULL) |> expect_no_error()
 })
 
 
@@ -109,17 +141,18 @@ test_that("small_peak_filter", {
     peak_start = 1,
     peak_end = 2,
     target = "all",
-    manual = F
+    mode = "auto"
   )
   apply_area_cutoff(main2, 10**3, 1)
 
   main2 <- update_RT(
     main,
-    "C2",
+    2,
     peak_start = 1,
     peak_end = 2,
     target = "all",
-    manual = F
+    mode = "auto"
   )
-  apply_area_cutoff(main2, 10**3, "C2")
+  apply_area_cutoff(main2, 10**3, 2)  |> expect_no_error()
+
 })

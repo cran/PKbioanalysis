@@ -75,7 +75,9 @@ check_all <- function(object) {
       "observed_peak_end",
       "observed_peak_height",
       "observed_rt",
-      "manual"
+      "manual", 
+      "flag",
+      "comment"
     )
   )
 

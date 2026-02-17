@@ -1,3 +1,4 @@
+skip_if_no_py()
 test_that("smoothing_testing", {
   # path <- system.file("extdata", "waters_raw_ex", package="PKChromaMetrics")
   # main <- read_chrom(path)

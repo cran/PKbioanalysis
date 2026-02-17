@@ -22,7 +22,10 @@ upload_quant_file_ui <- function(id) {
       selectInput(
         ns("method_id"),
         "Select Method ID",
-        choices = stats::setNames(.get_methodsdb()$method_id, .get_methodsdb()$method)
+        choices = stats::setNames(
+          .get_methodsdb()$method_id,
+          .get_methodsdb()$method
+        )
       )
     ),
     actionButton(ns("load_quant_btn"), "Load Quant File")
@@ -74,20 +77,19 @@ res_ui <- function(id) {
 res_tab_server <- function(id, quantres, cmpds_vec) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
-
     output$method_var_plot <- renderPlot({
       req(quantres())
 
       tryCatch(
         {
           x <- prefilter_precision_data(
-            quantres(),
-            input$filter_type,
-            input$accuracy_threshold,
-            input$compound_id
+            x = quantres(),
+            type = input$filter_type,
+            acc_cutoff = input$accuracy_threshold,
+            compound_id = input$compound_id
           )
           x <- calc_var_summary(x)
-          plot_var_pattern(x, title = input$compound_id)
+          plot_var_pattern(x, title = input$compound_id) & ggplot2::theme_bw()
         },
         error = function(e) {
           showNotification(
@@ -109,10 +111,10 @@ res_tab_server <- function(id, quantres, cmpds_vec) {
       tryCatch(
         {
           x <- prefilter_precision_data(
-            quantres(),
-            input$filter_type,
-            input$accuracy_threshold,
-            input$compound_id
+            x = quantres(),
+            type = input$filter_type,
+            acc_cutoff = input$accuracy_threshold,
+            compound_id = input$compound_id
           )
           calc_var_summary(x) |>
             reactable::reactable()
@@ -138,10 +140,10 @@ res_tab_server <- function(id, quantres, cmpds_vec) {
       tryCatch(
         {
           x <- prefilter_precision_data(
-            quantres(),
-            input$filter_type,
-            input$accuracy_threshold,
-            input$compound_id
+            x = quantres(),
+            type = input$filter_type,
+            acc_cutoff = input$accuracy_threshold,
+            compound_id = input$compound_id
           )
           fit_var(x) |>
             dplyr::select(
@@ -190,55 +192,198 @@ res_tab_server <- function(id, quantres, cmpds_vec) {
 pk_ui <- function(id) {
   ns <- NS(id)
   bslib::page_fillable(
-    actionButton("update_pk_btn", "Merge"),
-    bslib::navset_underline(
-      bslib::nav_panel(
-        title = "PK Profiles",
-        bslib::card(ggiraph::girafeOutput(ns("pk_profs_plot"))),
-        full_screen = TRUE
+    actionButton(ns("update_pk_btn"), "Merge"),
+    bslib::layout_sidebar(
+      sidebar = sidebar(
+        selectInput(ns("compound_id"), "Compound", choices = NA),
+        shiny::hr(),
+        selectInput(
+          ns("pk_plot_stratify"),
+          "Stratify PK Plot By",
+          choices = c(
+            "None" = "none",
+            "Subject" = "subject_id",
+            "Arm" = "group_label",
+            "Factor" = "extra_factors",
+            "Sex" = "sex",
+            "Route" = "route"
+          ),
+          selected = "none"
+        ),
+        selectInput(
+          ns("pk_plot_shape"),
+          "PK Plot Shape",
+          choices = c("None" = "none", "Dilution" = "dil"),
+          selected = "dil"
+        )
       ),
-      bslib::nav_panel(
-        title = "PK parameters",
-        verbatimTextOutput(ns("pk_parameters_output"))
-      ),
-      bslib::nav_panel(title = "Exports", p("Export"))
+      bslib::navset_underline(
+        bslib::nav_panel(
+          title = "PK Data",
+          bslib::card(
+            reactable::reactableOutput(ns("pk_data_table")),
+            full_screen = TRUE
+          )
+        ),
+        bslib::nav_panel(
+          title = "PK Profiles",
+          bslib::card(
+            ggiraph::girafeOutput(ns("pk_profs_plot")),
+            full_screen = TRUE
+          )
+        ),
+        bslib::nav_panel(
+          title = "PK parameters",
+          bslib::card(
+            reactable::reactableOutput(ns("pk_parameters_output")),
+            full_screen = TRUE
+          )
+        ),
+        bslib::nav_panel(
+          title = "Exports",
+          p("Export"),
+          selectInput(
+            ns("export_pkdata_format"),
+            "Data Format",
+            choices = c("NONMEM")
+          ),
+          shiny::downloadButton(ns("export_pkdata_btn"), "Export")
+        )
+      )
     )
   )
 }
 
-pk_server <- function(id, quantres, cmpd_trans_df) {
+pk_server <- function(id, quantres, cmpds_vec) {
   # stopifnot(is.reactive(chrom_res))
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-    output$pk_profs_plot <- ggiraph::renderGirafe({
+    observeEvent(quantres(), {
+      req(quantres())
+
+      updateSelectInput(
+        session,
+        "compound_id",
+        choices = cmpds_vec()
+      )
+    })
+
+    observeEvent(input$update_pk_btn, {
+      req(quantres())
       tryCatch(
         {
-          extract_pk_profiles(quantres()) |> quantres()
-          plot_pk_profiles(quantres())
+          pkmerge(quantres()) |>
+            quantres()
+          showNotification(
+            "PK profiles updated successfully!",
+            type = "message"
+          )
         },
         error = function(e) {
-          print(e)
+          showNotification(
+            paste("Error in pkmerge:", e$message),
+            type = "error"
+          )
         },
         warning = function(e) {
+          showNotification(
+            paste(e$warning),
+            type = "warning"
+          )
+        }
+      )
+    })
+
+    output$pk_data_table <- reactable::renderReactable({
+      req(input$compound_id)
+      req(quantres())
+
+      validate(need(
+        has_pk_profiles(quantres(), input$compound_id),
+        "No PK profiles available for the selected compound. Please run linearity and PK merge."
+      ))
+
+      pk_data <- quantres()@pkdata[[input$compound_id]]
+
+      pk_data |>
+        reactable::reactable(
+          columns = list(
+            subject_id = reactable::colDef(name = "Subject ID"),
+            nominal_time = reactable::colDef(name = "Nominal Time"),
+            conc = reactable::colDef(name = "Concentration"),
+            dil = reactable::colDef(name = "Dilution")
+          ),
+          rownames = FALSE,
+          defaultPageSize = 20,
+          filterable = TRUE,
+          searchable = TRUE
+        )
+    })
+
+    output$pk_profs_plot <- ggiraph::renderGirafe({
+      req(input$compound_id)
+      req(quantres())
+      validate(need(
+        has_pk_profiles(quantres(), input$compound_id),
+        "No PK profiles available for the selected compound. Please run linearity and PK merge."
+      ))
+      tryCatch(
+        {
+          plot_pk_profiles(
+            quantres(),
+            compound_id = input$compound_id,
+            stratify_by = ifelse(
+              input$pk_plot_stratify == "none",
+              NA,
+              input$pk_plot_stratify
+            ),
+            shape = ifelse(
+              input$pk_plot_shape == "none",
+              NA,
+              input$pk_plot_shape
+            )
+          )
+        },
+        error = function(e) {
           print(e)
         }
       )
     })
 
-    output$pk_parameters_output <- renderPrint({
+    output$pk_parameters_output <- reactable::renderReactable({
+      req(input$compound_id)
+      req(quantres())
+      validate(need(
+        has_pk_profiles(quantres(), input$compound_id),
+        "No PK profiles available for the selected compound. Please run linearity and PK merge."
+      ))
+
       tryCatch(
         {
-          nca_table(quantres())
+          nca_table(quantres(), compound_id = input$compound_id) |>
+            reactable::reactable(
+              rownames = FALSE,
+              defaultPageSize = 20,
+              filterable = TRUE,
+              searchable = TRUE
+            )
         },
         error = function(e) {
-          print(e)
-        },
-        warning = function(e) {
           print(e)
         }
       )
     })
+
+    output$export_pkdata_btn <- downloadHandler(
+      filename = function() {
+        paste0("exports_", input$compound_id, input$export_pkdata_format, Sys.Date(), ".zip")
+      },
+      content = function(file) {
+        export_pk_profiles(quantres(), compound_id= input$compound_id, 
+                          format = input$export_pkdata_format, filename = file)
+      }
+    )
   })
 }
 
@@ -286,7 +431,7 @@ linearity_ui <- function(id) {
           ),
           bslib::card(
             bslib::layout_columns(
-              actionButton(ns("sync_linearity_btn"), "Sync"),
+              # actionButton(ns("sync_linearity_btn"), "Sync"),
               actionButton(ns("exclude_cs_btn"), "Exclude CS"),
               actionButton(ns("include_cs_btn"), "Include CS")
             ),
@@ -627,17 +772,17 @@ linearity_data_server <- function(id, quantres, cmpd_df) {
       last_selected_points()
     })
 
-    observeEvent(input$sync_linearity_btn, {
-      req(cmpd_id())
-      tryCatch(
-        {
-          sync_linearity(quantres(), cmpd_id()) |> quantres()
-        },
-        error = function(e) {
-          showNotification(paste("Error: ", e$message), type = "error")
-        }
-      )
-    })
+    # observeEvent(input$sync_linearity_btn, {
+    #   req(cmpd_id())
+    #   tryCatch(
+    #     {
+    #       sync_linearity(quantres(), cmpd_id()) |> quantres()
+    #     },
+    #     error = function(e) {
+    #       showNotification(paste("Error: ", e$message), type = "error")
+    #     }
+    #   )
+    # })
 
     observeEvent(input$exclude_cs_btn, {
       req(last_selected_points())
@@ -708,7 +853,17 @@ quantapp_ui <- function() {
   bslib::page_navbar(
     title = "Quantification App",
     header = shinyjs::useShinyjs(),
+
     bslib::nav_panel(
+      "Open",
+      selectInput(
+        inputId = "load_cache_quant_file",
+        label = "Load Saved Quant File",
+        choices = lst_quant_cache_files()
+      ),
+      actionButton("open_cache_quant", "Open"),
+      shiny::br(),
+      shiny::br(),
       "Upload",
       id = "upload_page",
       upload_quant_file_ui("uploadmod")
@@ -774,12 +929,11 @@ quantapp_ui <- function() {
       res_ui("resmod")
     ),
     bslib::nav_panel("Merge", id = "pk_page", pk_ui("pkmod")),
-    bslib::nav_panel(
-      "Reports",
-      id = "exports_settings",
-      h2("Exports tab content"),
-      DTOutput("exports_table"),
-      downloadButton("downloadData", "Download")
+    bslib::nav_item(
+      actionButton("save_btn", "Save", style = "color:white;")
+    ),
+    bslib::nav_item(
+      textOutput("curr_file_name")
     ),
     bslib::nav_menu(
       title = "more",
@@ -823,7 +977,8 @@ quantapp_server <- function(input, output, session) {
       {
         df <- read_experiment_results(
           input$quant_file$datapath,
-          vendor = input$upload_format
+          vendor = input$upload_format,
+          logkey = ifelse(input$upload_format == "targetlynx_csv", "#", NULL)
         )
         df <- create_quant_object(
           df,
@@ -831,6 +986,7 @@ quantapp_server <- function(input, output, session) {
         )
 
         quantobj(df)
+        curr_file_name(NULL)
         showNotification("Quant file loaded successfully", type = "message")
       },
       error = function(e) {
@@ -987,6 +1143,89 @@ quantapp_server <- function(input, output, session) {
   pk_server("pkmod", quantobj, current_cmpds_names)
 
   config_module_server("config")
+
+  # Track if quantres() has changed since last save
+  quant_changed <- reactiveVal(FALSE)
+  curr_file_name <- reactiveVal(NULL)
+
+  observeEvent(quantobj(), {
+    quant_changed(TRUE)
+    shinyjs::runjs('$("#save_btn").css("background-color", "red");')
+    shiny::updateActionButton(session, "save_btn", label = "Save*")
+  })
+
+  observeEvent(input$save_btn, {
+    req(quantobj())
+
+    # ensure we have a file name
+    if (is.null(curr_file_name())) {
+      showModal(modalDialog(
+        title = "Save Quant File",
+        textInput("save_file_name", "Enter file name:", value = ""),
+        footer = tagList(
+          modalButton("Cancel"),
+          actionButton("confirm_save_btn", "Save")
+        )
+      ))
+    }
+
+    req(curr_file_name()) # ensure file name exist
+    tryCatch(
+      {
+        save_quant_object(quantobj(), curr_file_name())
+        quant_changed(FALSE)
+
+        updateSelectInput(
+          session,
+          "load_cache_quant_file",
+          choices = lst_quant_cache_files()
+        )
+
+        shinyjs::runjs('$("#save_btn").css("background-color", "");')
+        shiny::updateActionButton(session, "save_btn", label = "Save")
+      },
+      error = function(e) {
+        showNotification(paste("Error: ", e$message), type = "error")
+      }
+    )
+  })
+
+  observeEvent(
+    input$confirm_save_btn,
+    {
+      req(input$save_file_name)
+      curr_file_name(input$save_file_name)
+      removeModal()
+      shinyjs::click("save_btn") # backfire save button after capturing name
+    },
+    ignoreInit = TRUE,
+    once = TRUE
+  )
+
+  output$curr_file_name <- renderText({
+    if (is.null(curr_file_name())) {
+      "No file loaded/Saved"
+    } else {
+      paste("Current file:", curr_file_name())
+    }
+  })
+
+  observeEvent(input$open_cache_quant, {
+    req(input$load_cache_quant_file)
+    tryCatch(
+      {
+        load_quant_object(input$load_cache_quant_file) |>
+          quantobj()
+        curr_file_name(input$load_cache_quant_file)
+        showNotification("Quant file loaded successfully", type = "message")
+        shinyjs::click("save_btn")
+      },
+      error = function(e) {
+        showNotification(paste("Error: ", e$message), type = "error")
+      }
+    )
+  })
+
   # exit button ####
   observeEvent(input$exit, {
     shinyalert::shinyalert(

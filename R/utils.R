@@ -89,6 +89,7 @@ empty_string_to_na <- function(df) {
     file_name TEXT PRIMARY KEY,
 
     list_id INTEGER REFERENCES platesdb(list_id),
+    injec_id TEXT NOT NULL, -- unique for each injection, back link
     plate_id INTEGER,
 
     study_id TEXT, -- soft reference to study table
@@ -154,7 +155,8 @@ empty_string_to_na <- function(df) {
     cmt TEXT,
     sex TEXT,
 
-    UNIQUE(file_name)
+    UNIQUE(file_name),
+    UNIQUE(injec_id)
   );
 "
   )
@@ -334,7 +336,7 @@ studydesign_db <- function(con) {
     dose_freq      REAL,
     dose_addl      INTEGER,
     dose_amount    REAL,
-    dose_unit      TEXT CHECK (dose_unit IN ('g', 'mg', 'ug', 'NA')),
+    dose_unit      TEXT CHECK (dose_unit IN ('g', 'mg', 'ug', 'NA', 'mg/kg', 'g/kg', 'ug/kg')),
     route          TEXT CHECK (route IN ('PO', 'IV', 'SC', 'IM', 'IP', 'SL', 'NA')),
     formulation    TEXT, 
     UNIQUE(group_label, arm_id, study_id)
@@ -364,19 +366,28 @@ studydesign_db <- function(con) {
   DBI::dbExecute(
     con,
     "
-  CREATE TABLE IF NOT EXISTS sample_quant (
+  CREATE TABLE IF NOT EXISTS quant_meta (
     quant_id     TEXT PRIMARY KEY, 
-    log_id       TEXT NOT NULL REFERENCES sample_log(log_id),
-    method_id    INTEGER REFERENCES methodstab(method_id),
-    compound_id  INTEGER REFERENCES compoundstab(compound_id),
-    concentration REAL,
-    conc_unit    TEXT CHECK (conc_unit IN ('ng/mL', 'ug/mL', 'mg/L', 'ng/g', 'ug/g', 'mg/g', 'NA')),
-    quant_date   DATE,
+    quant_date   DATE
   );
   "
   )
-}
 
+  DBI::dbExecute(
+    con,
+    "CREATE TABLE IF NOT EXISTS quant_samples (
+      quant_id     TEXT NOT NULL REFERENCES quant_meta(quant_id),
+      log_id       TEXT NOT NULL, -- soft reference to sample_log(log_id)
+      file_name    TEXT NOT NULL, 
+      compound_id  INTEGER REFERENCES compoundstab(compound_id),
+      concentration REAL,
+      conc_unit   TEXT,
+      UNIQUE(quant_id, log_id, file_name)
+    );
+  "
+  )
+
+}
 
 get_injecseq_relation <- function(study_id) {
   # map sample_log.log_id to samples.log_id
@@ -402,3 +413,5 @@ get_injecseq_relation <- function(study_id) {
 
   sample_list
 }
+
+

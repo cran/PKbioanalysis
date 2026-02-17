@@ -6,7 +6,7 @@ cmpyml <- .parse_cmpds(cmpyml) |> suppressWarnings()
 
 dat <- system.file("extdata", "08122019_MTG.txt", package = "PKbioanalysis")
 suppressWarnings(
-  quantobj <- read_experiment_results(dat, vendor = "targetlynx_csv")
+  quantobj <- read_experiment_results(dat, vendor = "targetlynx_csv", logkey = "#")
 )
 
 quantobj <- create_quant_object(quantobj, 1)

@@ -24,36 +24,6 @@ test_that("check chromres cmpds against db", {
 })
 
 
-test_that("add-remove-cmpds", {
-  skip() # old tests, not relevant anymore
-
-  # add compound
-  dat1 <- add_compound(main, "dopamine32", 3)
-  n_cmpd <- nrow(dat1@compounds) # number of compounds
-  n_samples <- length(dat1@runs) # number of samples
-  # length = n_samples * n_cmpd
-  expect_equal(n_samples * n_cmpd == nrow(dat1@peaks), TRUE)
-
-  # add compound
-  dat2 <- add_compound(dat1, "epi", 3)
-  n_cmpd <- nrow(dat2@compounds) # number of compounds
-  n_samples <- length(dat2@runs) # number of samples
-  # length = n_samples * n_cmpd
-  expect_equal(n_samples * n_cmpd == nrow(dat2@peaks), TRUE)
-
-  expect_equal(all(c("dopamine32", "epi") %in% dat2@compounds$compound), TRUE)
-
-  # remove compound
-  dat3 <- remove_compound(dat1, 1)
-  n_cmpd <- nrow(dat3@compounds) # number of compounds
-  n_samples <- length(dat3@runs) # number of samples
-  # length = n_samples * n_cmpd
-  expect_equal(n_samples * n_cmpd == nrow(dat3@peaks), TRUE)
-
-  res <- remove_compound(dat3, "C22")
-  expect_equal(all("epi" %in% res@compounds$compound), FALSE)
-})
-
 
 test_that("chromres_object_getters", {
   get_sample_names(main) |> class() |> expect_equal("data.frame")
@@ -86,3 +56,4 @@ test_that("targetlynxCSV_to_chrom_res", {
     "Must be a list of cmpds with conc, is_conc, area, IS_area, rel_area and std_conc"
   )
 })
+

@@ -8,17 +8,18 @@
 
 #' Read experiment results
 #' @param x path to experiment results. See details
-#' @param vendor vendor name. Currently only "targetlynx_xml" or "targetlynx_csv" are supported.
 #' @param drop_prefix logical. If TRUE, drop the prefix from the sample name
-#'
-#' @details
+#' @param vendor vendor name. Currently only "targetlynx_xml" or "targetlynx_csv" are supported.
+#' @param logkey character. The column name in the targetlynx CSV file that contains the injection sequence or log key. Default is "Index" which is the default column in targetlynx CSV exports, but it can be customized if the user has a different column name for the injection sequence.
+#' @details  
 #' Currently only targetlynx XML or CSV exported files are supported.
 #' @return QuantRes object with the results of the experiment.
 #' @export
 read_experiment_results <- function(
   x,
   drop_prefix = FALSE,
-  vendor = "targetlynx_xml"
+  vendor = "targetlynx_xml", 
+  logkey = "Index"
 ) {
   checkmate::assertFileExists(x)
   checkmate::assertChoice(
@@ -63,12 +64,14 @@ read_experiment_results <- function(
         "peak_end",
         "SN",
         "IS_name",
-        "RT"
+        "RT", 
+        logkey
       ) |>
       dplyr::mutate(across(
         c("stdconc", "area", "height", "peak_start", "peak_end", "SN", "RT"),
         as.numeric
-      ))
+      )) |> 
+      dplyr::rename(injec_id = !!sym(logkey))
   } else if (vendor == "generic") {
     stop("Vendor not supported")
   } else {

@@ -10,9 +10,11 @@ update_RT(
   sample_id = NULL,
   peak_start,
   peak_end,
-  manual = FALSE,
+  mode = "auto",
   target = "single",
-  force = FALSE
+  force = FALSE,
+  comment = "",
+  flag = FALSE
 )
 }
 \arguments{
@@ -20,27 +22,41 @@ update_RT(
 
 \item{compound_id}{Compound ID}
 
-\item{sample_id}{Sample ID}
+\item{sample_id}{Sample ID (required for "single" and "all_next", must be NULL for "all")}
 
 \item{peak_start}{Minimum RT value}
 
 \item{peak_end}{Maximum RT value}
 
-\item{manual}{Manual update. Default is FALSE}
+\item{mode}{Mode of update. Options are "auto", "manual", "ai". Default is "auto"}
 
-\item{target}{Target of update. Options are "single", "all", "all_next"}
+\item{target}{Target of update. Options are "single", "all", "all_next". Default is "single"}
 
 \item{force}{Force update if previous peak exists. Default is FALSE}
+
+\item{comment}{Comment for the update. Default is an empty string}
+
+\item{flag}{Flag the peak after update. Default is FALSE}
+}
+\value{
+Updated ChromRes object
 }
 \description{
 Update RT for either all compounds, all next samples, or single compound and sample
 }
 \details{
-Only target = "all" will update the expected RT for all compounds.
+- target = "single": Updates RT for one compound and sample
+- target = "all": Updates expected RT for all samples (sets expected bounds)
+- target = "all_next": Updates RT for specified sample and subsequent samples
+
+All modes affect both observed and expected RT values:
+- "manual": Sets exact peak bounds, marks as manual
+- "auto": Auto-detects peaks within bounds
+- "ai": AI-based peak detection
 }
 \examples{
 \dontrun{
-update_RT(chrom_res, compound_id = 1, sample_id = 1, 
-          peak_start = 1, peak_end = 2, target = "single")
+update_RT(chrom_res, compound_id = 1, sample_id = 1,
+          peak_start = 0.1, peak_end = 1, target = "single")
 }
 }

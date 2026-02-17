@@ -295,7 +295,8 @@ write_injec_seq <- function(injec_seq) {
   # Modify sample list
   sample_list <- injec_seq$injec_list |> 
     dplyr::rename_all(tolower) |>
-    select(-matches("index"))
+    select(-matches("index")) |> 
+    mutate(injec_id = uuid::UUIDgenerate(n =  nrow(injec_seq$injec_list)))
 
   db_path <- PKbioanalysis_env$data_dir |>
     file.path("samples.db")

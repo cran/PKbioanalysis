@@ -1,3 +1,5 @@
+skip_if_no_py()
+
 test_that("filtering_works_2way", {
   # expect_no_error(print(main))
 
@@ -19,7 +21,7 @@ test_that("filtering_works_2way", {
 
   expect_equal(names(res@runs$files), as.character(c(3, 4))) # samples
   expect_equal(ncol(res@runs$files[[1]][[1]]) - 1, 3) # transitions in chromatogram
-  expect_equal(res@transitions$transition_id, paste0("T", c(18, 19, 20))) # transitions list
+  expect_equal(res@transitions$transition_id, c(18, 19, 20)) # transitions list
 })
 
 test_that("filtering_works_transition", {
@@ -34,7 +36,7 @@ test_that("filtering_works_transition", {
 
   expect_equal(names(res@runs$files), names(main@runs$files)) # samples
   expect_equal(ncol(res@runs$files[[1]][[1]]) - 1, 3) # transitions in chromatogram
-  expect_equal(res@transitions$transition_id, paste0("T", c(18, 19, 20))) # transitions list
+  expect_equal(res@transitions$transition_id, c(18, 19, 20)) # transitions list
 })
 
 
@@ -65,7 +67,7 @@ test_that("filter_works with smoothing", {
   expect_equal(ncol(res@runs$files[[1]][[1]]) - 1, 3) # transitions in chromatogram
   expect_equal(ncol(res@runs$files[[1]]$smoothed) - 1, 3) # transitions in chromatogram
 
-  expect_equal(res@transitions$transition_id, paste0("T", c(18, 19, 20))) # transitions list
+  expect_equal(res@transitions$transition_id, c(18, 19, 20)) # transitions list
 })
 
 
@@ -77,5 +79,5 @@ test_that("filter_works_with_compounds", {
 
   expect_equal(res@transitions$transition_id, main@transitions$transition_id) # transitions list
 
-  expect_equal(res@compounds$compound_id, paste0("C", c(1, 2, 3))) # compounds list
+  expect_equal(res@compounds$compound_id, c(1, 2, 3)) # compounds list
 })

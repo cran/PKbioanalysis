@@ -26,5 +26,8 @@
 - Support for study registration
 - Injection sequence ending now has specific pattern of letter and number, for instance A2 means location A and repeated 2nd time.
 - Enhanced naming convention for reinjections and replicates.
+- AI-assisted chromatogram integration and commenting.
+- PKmerge to generate final PK datasets.
+- Export PK profiles to NONMEM format along with codebook.
 
  

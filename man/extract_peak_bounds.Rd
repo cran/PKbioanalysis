@@ -4,12 +4,14 @@
 \alias{extract_peak_bounds}
 \title{Extract Peak Boundaries}
 \usage{
-extract_peak_bounds(chrom_res, compound_id)
+extract_peak_bounds(chrom_res, compound_id, samples_ids = NULL)
 }
 \arguments{
 \item{chrom_res}{ChromRes object}
 
-\item{compound_id}{Compound ID
+\item{compound_id}{Compound ID}
+
+\item{samples_ids}{Sample IDs. If NULL, all samples will be used
 The function automatically priortizes observed peak boundaries (manual integration) over expected ones.
 If observed boundaries are not available, it falls back to expected boundaries.}
 }
@@ -17,5 +19,5 @@ If observed boundaries are not available, it falls back to expected boundaries.}
 Dataframe with compound_id, min, max
 }
 \description{
-Extract peak boundaries for a given compound ID
+Extract peak boundaries for all samples for a given compound ID
 }

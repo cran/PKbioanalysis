@@ -29,6 +29,7 @@ setClass(
         quanttab = "list",
         linearity = "list",
         suitability = "list",
-        resEstim = "list"
+        resEstim = "list", 
+        pkdata = "list"
     )
 )

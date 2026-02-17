@@ -52,10 +52,12 @@ dir_or_files_to_files <- function(dir, file_pattern) {
 
   rawreadr <- function(file) {
     f <- py$masslynx_parser$read_waters(file) # pycall
-    # 1: data, 2: cmpds, 3: run meta, 4: q1 transitions, 5: q3 transitions
 
-    # 1
-    f[[1]] <- f[[1]] |> cbind(as.data.frame(f[[3]]))
+    ## Description of f elements:
+    # 1: chrom data points df, 2: cmpds, 3: run meta vec, 4: q1 transitions, 5: q3 transitions
+
+    f[[1]] <- cbind(as.data.frame(f[[1]]), 
+                    as.data.frame(f[[3]]))
     coln <- f[[1]] |> colnames()
 
     # 2 and 4
@@ -335,7 +337,9 @@ dir_or_files_to_files <- function(dir, file_pattern) {
       observed_peak_end = as.numeric(NA),
       observed_peak_height = as.numeric(NA),
       observed_rt = as.numeric(NA),
-      manual = FALSE
+      manual = FALSE,
+      flag = FALSE,
+      comment = ""
     )
   # join filename and compound
   chrom_res$exp_peaktab <- chrom_res$exp_peaktab |>
@@ -353,7 +357,9 @@ dir_or_files_to_files <- function(dir, file_pattern) {
       "observed_peak_end",
       "observed_peak_height",
       "observed_rt",
-      "manual"
+      "manual", 
+      "flag",
+      "comment"
     )
 
   chrom_res
